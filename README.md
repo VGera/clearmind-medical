@@ -63,6 +63,41 @@ If a genuinely warm voice is wanted later, the honest route is a cloud voice
 The form and the chatbot (**Mira**) write to the same state — switch mid-flow
 and nothing is re-asked. Mira fills several slots from one sentence.
 
+## Verified Inc. integration (mocked)
+
+**1-Click Verify + 1-Click Health**, mocked in `src/lib/verified/` against the
+documented response shapes, so the real SDK is a swap in `mock.ts` only.
+
+**Insurance discovery** replaces the carrier guess. Three fields — first name,
+last name, date of birth — return `payer.name`, `memberId`, `isMedicare` and
+`coverageTypes`. Those same three fields go on the chart, so the details screen
+is prefilled rather than asking twice. Manual entry sits beside it the whole
+time: about one in five adults aren't found, so it's a path, not a failure.
+
+**Real-time eligibility** replaces the invented "$25–$45". `benefits[]` gives
+`copay`, `deductible` (with `remaining`) and `coinsurance`; `network.status`
+gives in/out-of-network; `coverageStatus` catches a lapsed plan. The payment
+screen states a real number and says it isn't an estimate.
+
+**Exclusions become data.** `isMedicare` and a Medicaid payer-name match route
+to the resources page instead of relying on self-report — Medicare Advantage
+often reads as commercial to a patient. Texas patients blocked only by payer
+still get the direct-pay offer.
+
+**1-Click Verify** replaces the OTP step with the documented waterfall:
+autofill (carrier returns the number, nothing typed) → silent (typed number
+confirmed without an SMS) → SMS code. All three render; none is treated as the
+real one, and the code path is always reachable.
+
+Test users are keyed on last name + date of birth — see the header comment in
+`src/lib/verified/mock.ts` for the full list (BCBS, UHC, Aetna, a two-plan
+Cigna/Oscar case, Medicare Advantage, Medicaid STAR, an inactive plan, and
+anything else for the not-found path).
+
+Not wired, and needed for production: a Verified account and API keys, the
+practice NPI (eligibility is submitted as the provider), a HIPAA BAA, and a
+check that all five payers support eligibility checks in Texas.
+
 ## Off-ramps (never a dead end)
 
 Out of state, under 18, Medicare, or Medicaid routes to `CareElsewhere`, which

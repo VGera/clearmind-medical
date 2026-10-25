@@ -53,6 +53,14 @@ const NOTES: { h: string; p: string }[] = [
     p: "The hold used to tick down from 15:00, sticky to the bottom of the screen, right before a twelve-field form. For an anxious patient that turns a care decision into a timed test. The time is still held; it just says so calmly.",
   },
   {
+    h: "The insurance question is answered, not asked",
+    p: "1-Click Health discovery turns \u201cwhich plan do you have?\u201d into \u201cis this your plan?\u201d from a name and a birthday \u2014 and those two were needed for the chart anyway, so nothing is asked twice. Eligibility then replaces the invented copay range with a real number from the insurer, and catches the lapsed plan and the out-of-network plan before the patient discovers them in a bill. Medicare detection stops depending on a patient knowing that their Advantage plan is Medicare.",
+  },
+  {
+    h: "Autofill never becomes a requirement",
+    p: "Roughly one in five adults aren't found by discovery. \u201cEnter it myself\u201d is on screen throughout, not revealed after a failure, and the list of six carriers is one tap away. Same rule as the rest of the flow: the fast path is offered, never imposed.",
+  },
+  {
     h: "Money before the card",
     p: "$0 today, the expected copay, then the card. Surprise cost is the most common reason a booked psychiatric first visit never happens.",
   },

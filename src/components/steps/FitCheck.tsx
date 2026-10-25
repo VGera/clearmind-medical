@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { CARRIERS, OTHER_PAYERS, OTHER_STATE, PRACTICE, QUESTIONS, US_STATES, stateName } from "@/lib/data";
 import type { Carrier, Intake, OtherPayer } from "@/lib/types";
+import { InsuranceAutofill } from "../InsuranceAutofill";
 import { Button, Card, Chip, Icon, OptionCard, StepHeading, inputClass } from "../ui";
 
 function Question({
@@ -62,7 +63,9 @@ export function FitCheck({
 
   const showAdult = intake.state === "TX";
   const showCarrier = showAdult && intake.adult === true;
-  const showOther = showCarrier && intake.carrier === "other";
+  const showOther = showCarrier && intake.carrier === "other" && intake.insuranceSource === "manual";
+  /* Autofill first; the list is always one tap away and never hidden. */
+  const [manual, setManual] = useState(false);
 
   /* Read the question that just appeared, not just the first one on the screen —
      otherwise a patient who can't read hears question one and then silence. */
@@ -145,17 +148,57 @@ export function FitCheck({
         )}
 
         {showCarrier && (
-          <Question id="q-carrier" text={QUESTIONS.carrier} note="Just the name. No card yet.">
-            <div className="grid gap-2.5 sm:grid-cols-2" role="radiogroup" aria-labelledby="q-carrier">
-              {CARRIERS.map((c) => (
-                <OptionCard
-                  key={c.id}
-                  selected={intake.carrier === c.id}
-                  title={c.label}
-                  onClick={() => patch({ carrier: c.id as Carrier, otherPayer: null, selfPay: false })}
-                />
-              ))}
-            </div>
+          <Question
+            id="q-carrier"
+            text={QUESTIONS.carrier}
+            note={
+              manual
+                ? "Just the name. No card yet."
+                : "We can look it up for you, so you don't have to find your card."
+            }
+          >
+            {manual ? (
+              <>
+                <div className="grid gap-2.5 sm:grid-cols-2" role="radiogroup" aria-labelledby="q-carrier">
+                  {CARRIERS.map((c) => (
+                    <OptionCard
+                      key={c.id}
+                      selected={intake.carrier === c.id}
+                      title={c.label}
+                      onClick={() =>
+                        patch({
+                          carrier: c.id as Carrier,
+                          otherPayer: null,
+                          selfPay: false,
+                          insuranceSource: "manual",
+                          discovery: null,
+                          eligibility: null,
+                        })
+                      }
+                    />
+                  ))}
+                </div>
+                <button
+                  onClick={() => setManual(false)}
+                  className="mt-3.5 inline-flex min-h-[2.75rem] items-center gap-2 text-sm text-slate-600 underline decoration-current underline-offset-2"
+                >
+                  <Icon name="spark" className="h-4 w-4" />
+                  Look it up for me instead
+                </button>
+              </>
+            ) : (
+              <InsuranceAutofill intake={intake} patch={patch} onManual={() => setManual(true)} />
+            )}
+
+            {/* Discovery can surface an excluded payer, so the explanation has
+                to live here too — not only on the manual path. */}
+            {payerBlocked && intake.insuranceSource === "autofill" && (
+              <Blocked
+                title={`We can't bill ${intake.otherPayer === "medicare" ? "Medicare" : "Medicaid"}`}
+                body={`We found your ${intake.discovery?.payer.name ?? "plan"}, and we're not enrolled with that program — claims wouldn't go through. There are good covered options, and you can still see us by paying directly.`}
+                onGo={onElsewhere}
+              />
+            )}
           </Question>
         )}
 

@@ -32,6 +32,8 @@ export interface Account {
   consentTexts: boolean;
 }
 
+import type { HealthDiscovery, HealthEligibility } from "./verified/types";
+
 export interface Intake {
   mode: Mode;
   state: string;           // two-letter code, "" = unanswered
@@ -50,6 +52,12 @@ export interface Intake {
   slotISO: string | null;
   account: Account;
   phoneVerified: boolean;
+  /** How the phone was verified: 1-Click Verify waterfall channel. */
+  verifyChannel: "autofill" | "silent" | "sms" | null;
+  /** 1-Click Health results, when the patient used autofill. */
+  discovery: HealthDiscovery | null;
+  eligibility: HealthEligibility | null;
+  insuranceSource: "autofill" | "manual" | null;
   memberId: string;
   /** Set when self-harm language is detected, so later screens can respond. */
   crisisDisclosed: boolean;
@@ -83,6 +91,10 @@ export const emptyIntake: Intake = {
   slotISO: null,
   account: emptyAccount,
   phoneVerified: false,
+  verifyChannel: null,
+  discovery: null,
+  eligibility: null,
+  insuranceSource: null,
   memberId: "",
   crisisDisclosed: false,
 };

@@ -2,6 +2,7 @@
 
 import React, { useRef, useState } from "react";
 import { CARRIERS, PRACTICE, PROVIDERS, QUESTIONS } from "@/lib/data";
+import { maskMemberId, patientCost } from "@/lib/verified/mock";
 import type { Intake } from "@/lib/types";
 import { Avatar, Button, Card, Icon, Label, StepHeading, TextField, inputClass, invalidClass } from "../ui";
 import { fullSlotLabel, titleFor } from "./Match";
@@ -44,6 +45,8 @@ export function Payment({
 
   const [deferMember, setDeferMember] = useState(false);
   const carrier = CARRIERS.find((c) => c.id === intake.carrier);
+  const elig = intake.eligibility;
+  const cost = patientCost(elig);
   const isSelfPay = intake.selfPay || intake.otherPayer === "selfpay";
   const needsMember = !isSelfPay && !deferMember;
 
@@ -52,7 +55,7 @@ export function Payment({
   const expOk = /^(0[1-9]|1[0-2])\/\d{2}$/.test(card.exp);
   const cvcOk = /^\d{3,4}$/.test(card.cvc);
   const zipOk = /^\d{5}$/.test(card.zip);
-  const memberOk = !needsMember || intake.memberId.trim().length >= 5;
+  const memberOk = !needsMember || intake.insuranceSource === "autofill" || intake.memberId.trim().length >= 5;
 
   const fields = [
     { id: "memberId", ok: memberOk, name: "member ID" },
@@ -111,19 +114,52 @@ export function Payment({
               </div>
             </>
           ) : (
-            <div className="flex items-baseline justify-between gap-4">
-              <dt className="text-muted">Your {carrier?.short ?? "plan"} copay, after the visit</dt>
-              <dd className="font-medium text-ink">$25–$45</dd>
-            </div>
+            <>
+              <div className="flex items-baseline justify-between gap-4">
+                <dt className="text-muted">
+                  {cost.confident ? "Your share, after the visit" : `Your ${carrier?.short ?? "plan"} copay, after the visit`}
+                </dt>
+                <dd className="font-medium text-ink">{cost.text}</dd>
+              </div>
+              {elig && (
+                <div className="flex items-baseline justify-between gap-4">
+                  <dt className="text-muted">Plan</dt>
+                  <dd className="text-right text-ink">
+                    {elig.eligibility.plan.name}
+                    {elig.eligibility.plan.groupNumber && (
+                      <span className="block text-xs text-muted">Group {elig.eligibility.plan.groupNumber}</span>
+                    )}
+                  </dd>
+                </div>
+              )}
+            </>
           )}
         </dl>
-        <p className="mt-4 text-sm leading-relaxed text-muted">
-          We&rsquo;ll email the exact amount before your visit. Cancel or reschedule any time up to 24 hours ahead
-          and there&rsquo;s no charge; inside 24 hours it&rsquo;s ${PRACTICE.selfPay.followUp}.
+        {cost.detail && <p className="mt-3.5 text-sm leading-relaxed text-muted">{cost.detail}</p>}
+        <p className="mt-3.5 text-sm leading-relaxed text-muted">
+          {cost.confident
+            ? "That figure came back from your insurer, not an estimate."
+            : "We'll email the exact amount before your visit."}{" "}
+          Cancel or reschedule any time up to 24 hours ahead and there&rsquo;s no charge; inside 24 hours it&rsquo;s
+          ${PRACTICE.selfPay.followUp}.
         </p>
       </Card>
 
-      {needsMember && (
+      {needsMember && intake.insuranceSource === "autofill" && intake.discovery && (
+        <Card className="mt-3.5 p-5">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 shrink-0 text-sage-600"><Icon name="check" className="h-5 w-5" /></span>
+            <div className="min-w-0">
+              <p className="font-medium text-ink">{intake.discovery.payer.name}</p>
+              <p className="mt-1 text-sm text-muted">
+                Member ID {maskMemberId(intake.discovery.memberId)} — already on file, nothing to type.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {needsMember && intake.insuranceSource !== "autofill" && (
         <Card className="mt-3.5 p-5">
           <Label htmlFor="memberId">Member ID on your {carrier?.short} card</Label>
           <TextField
