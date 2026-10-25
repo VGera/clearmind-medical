@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  /* The sticky header would otherwise cover a field the browser just focused. */
+  scroll-padding-top: calc(4.5rem + env(safe-area-inset-top, 0px));
+}
+
+html,
+body {
+  background: #f6f5f1;
+  color: #1e2a33;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-size: 16px;
+  /* viewportFit: "cover" means landscape notch gutters are ours to handle. */
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* One focus ring for everything, instead of the browser's default blue. */
+:where(button, [role="button"], a, summary):focus-visible {
+  outline: 2px solid #2d5468;
+  outline-offset: 2px;
+  border-radius: 999px;
+}
+
+/* Calm, thin scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d6d2c7 transparent;
+}
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { background: #d6d2c7; border-radius: 999px; }
+
+/* Mic "listening" pulse — slow enough to read as calm, not urgent */
+@keyframes ping-slow {
+  0% { transform: scale(1); opacity: 0.6; }
+  70%, 100% { transform: scale(1.7); opacity: 0; }
+}
+.animate-ping-slow { animation: ping-slow 1.9s cubic-bezier(0, 0, 0.2, 1) infinite; }
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.rise { animation: rise 0.34s ease-out both; }
+
+@keyframes blink {
+  0%, 60%, 100% { opacity: 0.25; }
+  30% { opacity: 1; }
+}
+.dot-1 { animation: blink 1.3s infinite 0s; }
+.dot-2 { animation: blink 1.3s infinite 0.18s; }
+.dot-3 { animation: blink 1.3s infinite 0.36s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rise, .dot-1, .dot-2, .dot-3 { animation: none; }
+  /* animation:none would leave the pulse ring as a permanent disc over the mic. */
+  .animate-ping-slow { animation: none; display: none; }
+}
