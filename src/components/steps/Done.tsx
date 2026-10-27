@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { PRACTICE, PROVIDERS } from "@/lib/data";
 import { detectCrisis } from "@/lib/parse";
 import type { Intake } from "@/lib/types";
+import { CarePlan } from "../CarePlan";
 import { Button, Card, Icon } from "../ui";
 import { AppointmentSummary } from "./Payment";
 import { fullSlotLabel } from "./Match";
@@ -30,7 +31,15 @@ function icsFor(intake: Intake, start: Date): string {
   ].join("\r\n");
 }
 
-export function Done({ intake, onRestart }: { intake: Intake; onRestart: () => void }) {
+export function Done({
+  intake,
+  patch,
+  onRestart,
+}: {
+  intake: Intake;
+  patch: (p: Partial<Intake>) => void;
+  onRestart: () => void;
+}) {
   const [now] = useState(() => new Date());
   const start = intake.slotISO ? new Date(intake.slotISO) : null;
   const when = start ? fullSlotLabel(start, now) : "";
@@ -67,7 +76,7 @@ export function Done({ intake, onRestart }: { intake: Intake; onRestart: () => v
       <h1 tabIndex={-1} className="mt-5 font-serif text-[1.75rem] leading-tight text-ink outline-none sm:text-[2.1rem]">
         You&rsquo;re all set{first ? `, ${first}` : ""}.
       </h1>
-      <p className="mt-3 max-w-sm text-[1rem] leading-relaxed text-muted">
+      <p className="mt-3 max-w-md text-[1rem] leading-relaxed text-muted">
         That was the hard part. We emailed the details, and we&rsquo;ll text your visit link to{" "}
         <strong className="font-medium text-ink">{intake.account.phone}</strong> 30 minutes before.
       </p>
@@ -75,6 +84,12 @@ export function Done({ intake, onRestart }: { intake: Intake; onRestart: () => v
       <div className="mt-7">
         <AppointmentSummary intake={intake} now={now} />
       </div>
+
+      {start && (
+        <div className="mt-3.5">
+          <CarePlan intake={intake} start={start} />
+        </div>
+      )}
 
       <div className="mt-3.5 flex flex-col gap-3 sm:flex-row">
         <Button variant="secondary" onClick={download} className="w-full sm:w-auto">
@@ -104,28 +119,43 @@ export function Done({ intake, onRestart }: { intake: Intake; onRestart: () => v
         </Card>
       )}
 
-      <h2 className="mb-3.5 mt-9 text-[1.05rem] font-medium text-ink">Next</h2>
-      <ol className="space-y-3">
-        {[
-          { t: "A short form, in your inbox", d: "Your address, pharmacy and medical history. About five minutes." },
-          { t: "Your visit", d: "Fifty minutes by video. Somewhere private is enough." },
-          { t: "A plan you leave with", d: "Prescriptions go out the same day, if they make sense." },
-        ].map((s, i) => (
-          <li key={s.t}>
-            <Card className="p-4 sm:p-5">
-              <div className="flex items-start gap-3.5">
-                <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-50 font-serif text-sm text-slate-600">
-                  {i + 1}
-                </span>
-                <div>
-                  <h3 className="font-medium text-ink">{s.t}</h3>
-                  <p className="mt-1 text-[0.95rem] leading-relaxed text-muted">{s.d}</p>
-                </div>
-              </div>
-            </Card>
-          </li>
-        ))}
-      </ol>
+      <Card className="mt-6 p-5">
+        <h2 className="font-medium text-ink">Before your first visit</h2>
+        <p className="mt-1.5 text-[0.95rem] leading-relaxed text-muted">
+          A short form is in your inbox — your address, pharmacy and medical history, about five minutes. Your
+          provider reads it beforehand, so you won&rsquo;t start from the beginning.
+        </p>
+      </Card>
+
+      <div className="mt-7 rounded-xl border border-dashed border-line bg-panel px-4 py-3.5">
+        <p className="text-xs text-muted">Prototype — step through the plan:</p>
+        <div className="mt-2.5 flex flex-wrap gap-2">
+          <button
+            onClick={() =>
+              patch({
+                visitsCompleted: Math.min(intake.visitsCompleted + 1, 4),
+                intakeFormDone: true,
+                prescriptionSent: intake.visitsCompleted + 1 >= 1,
+              })
+            }
+            className="min-h-[2.75rem] rounded-full border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-600"
+          >
+            Complete next visit
+          </button>
+          <button
+            onClick={() => patch({ intakeFormDone: !intake.intakeFormDone })}
+            className="min-h-[2.75rem] rounded-full border border-line bg-panel px-4 text-sm text-muted"
+          >
+            Toggle intake form
+          </button>
+          <button
+            onClick={() => patch({ visitsCompleted: 0, intakeFormDone: false, prescriptionSent: false })}
+            className="min-h-[2.75rem] rounded-full border border-line bg-panel px-4 text-sm text-muted"
+          >
+            Reset
+          </button>
+        </div>
+      </div>
 
       <p className="mt-7 text-[0.95rem] leading-relaxed text-muted">
         Need someone before then? Call us at{" "}

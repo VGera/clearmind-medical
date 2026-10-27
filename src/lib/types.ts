@@ -52,6 +52,10 @@ export interface Intake {
   slotISO: string | null;
   account: Account;
   phoneVerified: boolean;
+  /** Onboarding isn't finished at payment — it's finished when care starts. */
+  visitsCompleted: number;
+  intakeFormDone: boolean;
+  prescriptionSent: boolean;
   /** How the phone was verified: 1-Click Verify waterfall channel. */
   verifyChannel: "autofill" | "silent" | "sms" | null;
   /** 1-Click Health results, when the patient used autofill. */
@@ -91,6 +95,9 @@ export const emptyIntake: Intake = {
   slotISO: null,
   account: emptyAccount,
   phoneVerified: false,
+  visitsCompleted: 0,
+  intakeFormDone: false,
+  prescriptionSent: false,
   verifyChannel: null,
   discovery: null,
   eligibility: null,

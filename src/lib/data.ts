@@ -349,3 +349,28 @@ export const TESTIMONIALS: Testimonial[] = [
     tint: "sand",
   },
 ];
+
+
+/* ------------------------------------------------------------------ */
+/* The first 90 days                                                   */
+/*                                                                     */
+/* Progress that only accumulates. No streaks, nothing that resets or   */
+/* turns red: for this population a missed appointment is usually a     */
+/* symptom, not a lapse, and shaming someone for it is the one thing    */
+/* this screen must never do.                                          */
+/* ------------------------------------------------------------------ */
+
+export interface PlannedVisit {
+  key: string;
+  label: string;
+  detail: string;
+  /** Days after the first appointment. */
+  offsetDays: number;
+}
+
+export const CARE_PLAN: PlannedVisit[] = [
+  { key: "intake", label: "First visit", detail: "Evaluation · 50 minutes", offsetDays: 0 },
+  { key: "dose", label: "Dose check", detail: "How it's going · 25 minutes", offsetDays: 14 },
+  { key: "adjust", label: "Adjust", detail: "Fine-tune the plan · 25 minutes", offsetDays: 42 },
+  { key: "review", label: "90-day review", detail: "Where to go from here · 25 minutes", offsetDays: 90 },
+];

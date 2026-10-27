@@ -169,6 +169,7 @@ function Flow() {
         {step === "done" && (
           <Done
             intake={intake}
+            patch={patch}
             onRestart={() => {
               setIntake(emptyIntake);
               setChatOpened(false);
