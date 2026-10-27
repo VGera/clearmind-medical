@@ -1,29 +1,63 @@
 "use client";
 
 import React from "react";
-import { CARRIERS, CONDITIONS, PRACTICE } from "@/lib/data";
+import { CARRIERS, CONDITIONS, PRACTICE, RATING, TESTIMONIALS, type Tint } from "@/lib/data";
 import { Button, Card, Icon } from "../ui";
+
+const TINTS: Record<Tint, string> = {
+  lilac: "bg-tint-lilac text-tint-lilacInk border-tint-lilacInk/15",
+  apricot: "bg-tint-apricot text-tint-apricotInk border-tint-apricotInk/15",
+  mint: "bg-tint-mint text-tint-mintInk border-tint-mintInk/15",
+  sky: "bg-tint-sky text-tint-skyInk border-tint-skyInk/15",
+  blush: "bg-tint-blush text-tint-blushInk border-tint-blushInk/15",
+  sand: "bg-tint-sand text-tint-sandInk border-tint-sandInk/15",
+};
+
+function Stars({ score }: { score: number }) {
+  return (
+    <span className="inline-flex items-center gap-0.5" aria-hidden="true">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <svg key={i} viewBox="0 0 20 20" className="h-4 w-4" fill={score >= i - 0.25 ? "#b9764f" : "#e3e0d8"}>
+          <path d="M10 1.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8L10 14.9l-5.2 2.7 1-5.8L1.6 7.7l5.8-.8z" />
+        </svg>
+      ))}
+    </span>
+  );
+}
 
 export function Landing({ onStart }: { onStart: (mode: "form" | "chat") => void }) {
   return (
     <div className="rise">
-      <div className="flex items-start justify-between gap-3">
-        <p className="inline-flex items-center gap-2 rounded-full bg-sage-100 px-3 py-1.5 text-xs font-medium text-sage-600">
-          <Icon name="video" className="h-4 w-4" />
-          Texas · adults · video visits
-        </p>
-        
-      </div>
+      {/* A warm panel rather than a flat page. Calm, but not colourless. */}
+      <div className="relative -mx-1 overflow-hidden rounded-xl2 border border-tint-lilacInk/10 bg-gradient-to-br from-tint-lilac via-tint-sky/60 to-tint-mint px-5 py-7 sm:px-8 sm:py-10">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-tint-apricot/60 blur-2xl"
+        />
+        <div className="relative">
+          <p className="inline-flex items-center gap-2 rounded-full bg-panel/80 px-3 py-1.5 text-xs font-medium text-tint-mintInk shadow-sm">
+            <Icon name="video" className="h-4 w-4" />
+            Texas · adults · video visits
+          </p>
 
-      <h1 tabIndex={-1} className="mt-5 max-w-sm font-serif text-[2rem] leading-[1.14] text-ink outline-none sm:max-w-lg sm:text-[2.6rem]">
-        Psychiatric care, without the wait.
-      </h1>
-      <p className="mt-4 max-w-sm text-[1.0625rem] leading-relaxed text-muted sm:max-w-md">
-        Online psychiatry for adults in Texas — ADHD, anxiety, depression, bipolar, PTSD.
-      </p>
-      <p className="mt-2 max-w-sm text-[1.0625rem] leading-relaxed text-muted">
-        A few short questions, or a chat. About five minutes.
-      </p>
+          <h1 tabIndex={-1} className="mt-5 max-w-sm font-serif text-[2rem] leading-[1.14] text-ink outline-none sm:max-w-lg sm:text-[2.6rem]">
+            Psychiatric care, without the wait.
+          </h1>
+          <p className="mt-4 max-w-sm text-[1.0625rem] leading-relaxed text-ink/75 sm:max-w-md">
+            Online psychiatry for adults in Texas — ADHD, anxiety, depression, bipolar, PTSD.
+          </p>
+          <p className="mt-2 max-w-sm text-[1.0625rem] leading-relaxed text-ink/75">
+            A few short questions, or a chat. About five minutes.
+          </p>
+
+          <p className="mt-5 inline-flex items-center gap-2 text-sm text-ink/75">
+            <Stars score={RATING.score} />
+            <span>
+              <strong className="font-medium text-ink">{RATING.score}</strong> from {RATING.count} patients
+            </span>
+          </p>
+        </div>
+      </div>
 
       <div className="mt-7 flex flex-col gap-3 sm:flex-row">
         <Button size="lg" onClick={() => onStart("form")} className="w-full sm:w-auto">
@@ -36,9 +70,9 @@ export function Landing({ onStart }: { onStart: (mode: "form" | "chat") => void 
         </Button>
       </div>
 
-      <Card className="mt-8 p-5">
+      <Card className="mt-8 border-tint-skyInk/15 bg-tint-sky p-5">
         <div className="flex items-start gap-3.5">
-          <span className="mt-0.5 shrink-0 text-slate-500"><Icon name="mic" className="h-5 w-5" /></span>
+          <span className="mt-0.5 shrink-0 text-tint-skyInk"><Icon name="mic" className="h-5 w-5" /></span>
           <p className="text-[0.95rem] leading-relaxed text-muted">
             When you get to the part where you describe what&rsquo;s going on, you can{" "}
             <strong className="font-medium text-ink">tap the microphone and just talk</strong> instead of typing.
@@ -47,9 +81,9 @@ export function Landing({ onStart }: { onStart: (mode: "form" | "chat") => void 
         </div>
       </Card>
 
-      <Card className="mt-3 border-clay-500/25 bg-clay-100/40 p-5">
+      <Card className="mt-3 border-tint-sandInk/15 bg-tint-sand p-5">
         <div className="flex items-start gap-3.5">
-          <span className="mt-0.5 shrink-0 text-clay-600"><Icon name="info" className="h-5 w-5" /></span>
+          <span className="mt-0.5 shrink-0 text-tint-sandInk"><Icon name="info" className="h-5 w-5" /></span>
           <div className="min-w-0">
             <p className="text-[0.95rem] leading-relaxed text-muted">
               For now we see adults in <strong className="font-medium text-ink">{PRACTICE.stateNames}</strong> only,
@@ -65,7 +99,7 @@ export function Landing({ onStart }: { onStart: (mode: "form" | "chat") => void 
       <h2 className="mb-3 mt-9 text-[1.05rem] font-medium text-ink">What we treat</h2>
       <div className="flex flex-wrap gap-2">
         {CONDITIONS.filter((c) => c.id !== "other").map((c) => (
-          <span key={c.id} className="rounded-full border border-line bg-panel px-3.5 py-2 text-sm text-muted">
+          <span key={c.id} className={`rounded-full border px-3.5 py-2 text-sm font-medium ${TINTS[c.tint]}`}>
             {c.label}
           </span>
         ))}
@@ -77,7 +111,33 @@ export function Landing({ onStart }: { onStart: (mode: "form" | "chat") => void 
         A short form with your address and history arrives by email after you book.
       </p>
 
-      <Button size="lg" onClick={() => onStart("form")} className="mt-7 w-full sm:w-auto">
+      <section className="mt-11" aria-labelledby="voices">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 id="voices" className="font-serif text-[1.3rem] text-ink">What patients say</h2>
+          <p className="text-sm text-muted">{RATING.count} reviews</p>
+        </div>
+
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {TESTIMONIALS.map((t) => (
+            <li key={t.name}>
+              <figure className={`h-full rounded-xl2 border p-5 ${TINTS[t.tint]}`}>
+                <blockquote className="text-[0.95rem] leading-relaxed">
+                  &ldquo;{t.quote}&rdquo;
+                </blockquote>
+                <figcaption className="mt-3.5 text-xs font-medium">
+                  {t.name} · {t.city} · {t.when}
+                </figcaption>
+              </figure>
+            </li>
+          ))}
+        </ul>
+
+        <p className="mt-3.5 text-xs leading-relaxed text-muted">
+          Sample reviews for this prototype — written for the demo, not real patients.
+        </p>
+      </section>
+
+      <Button size="lg" onClick={() => onStart("form")} className="mt-9 w-full sm:w-auto">
         Start
         <Icon name="arrow" className="h-5 w-5" />
       </Button>

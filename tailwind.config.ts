@@ -26,6 +26,16 @@ const config: Config = {
         sage: { 100: "#e6efe8", 500: "#5f8871", 600: "#4c7159" },
         clay: { 100: "#f6ece4", 500: "#b9764f", 600: "#9c6241" },
         alert: { 100: "#f7e9e7", 500: "#a4433b" },
+        /* Soft tints for the acquisition surfaces. Every pairing below is
+           dark-on-pastel, so all of them clear AA comfortably. */
+        tint: {
+          lilac: "#ece8f7", lilacInk: "#4a3f6e",
+          apricot: "#fbeade", apricotInk: "#8a5331",
+          mint: "#e2f0e9", mintInk: "#2f6b52",
+          sky: "#e3eef8", skyInk: "#2c5578",
+          blush: "#fae9ea", blushInk: "#8a3f49",
+          sand: "#f7eedd", sandInk: "#7a5a2a",
+        },
       },
       fontFamily: {
         sans: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica", "Arial", "sans-serif"],

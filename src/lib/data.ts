@@ -55,18 +55,20 @@ export const OTHER_PAYERS: { id: OtherPayer; label: string; note: string }[] = [
   { id: "tricare", label: "TRICARE or VA", note: "We'll check your benefits" },
 ];
 
+export type Tint = "lilac" | "apricot" | "mint" | "sky" | "blush" | "sand";
+
 /** `label` is the chip. `prose` is for sentences, where a label reads oddly. */
-export const CONDITIONS: { id: string; label: string; prose: string; aka: string[] }[] = [
-  { id: "adhd", label: "ADHD", prose: "ADHD", aka: ["adhd", "add", "focus", "attention", "concentrate", "distract"] },
-  { id: "anxiety", label: "Anxiety", prose: "anxiety", aka: ["anxiety", "anxious", "worry", "worried", "nervous", "on edge", "panic attack", "panicky"] },
-  { id: "depression", label: "Depression", prose: "depression", aka: ["depression", "depressed", "low mood", "sad", "hopeless", "empty", "no motivation", "numb"] },
-  { id: "bipolar", label: "Mood swings", prose: "bipolar disorder", aka: ["bipolar", "mood swing", "manic", "mania", "hypomania", "up and down"] },
-  { id: "ptsd", label: "Trauma or PTSD", prose: "PTSD and trauma", aka: ["ptsd", "trauma", "flashback", "nightmare", "assault", "abuse", "combat"] },
-  { id: "ocd", label: "OCD", prose: "OCD", aka: ["ocd", "obsessive", "compulsive", "intrusive", "checking", "rituals"] },
-  { id: "sleep", label: "Sleep", prose: "sleep problems", aka: ["sleep", "insomnia", "can't sleep", "cant sleep", "lying awake", "exhausted"] },
-  { id: "perinatal", label: "Postpartum", prose: "postpartum mood", aka: ["postpartum", "perinatal", "pregnan", "after birth", "new mom", "new mother"] },
-  { id: "substance", label: "Alcohol or drugs", prose: "alcohol and substance use", aka: ["alcohol", "drinking", "drugs", "substance", "weed", "opioid", "sober"] },
-  { id: "other", label: "Something else", prose: "what you described", aka: ["something else", "not sure what", "other"] },
+export const CONDITIONS: { id: string; label: string; prose: string; tint: Tint; aka: string[] }[] = [
+  { tint: "apricot", id: "adhd", label: "ADHD", prose: "ADHD", aka: ["adhd", "add", "focus", "attention", "concentrate", "distract"] },
+  { tint: "lilac", id: "anxiety", label: "Anxiety", prose: "anxiety", aka: ["anxiety", "anxious", "worry", "worried", "nervous", "on edge", "panic attack", "panicky"] },
+  { tint: "sky", id: "depression", label: "Depression", prose: "depression", aka: ["depression", "depressed", "low mood", "sad", "hopeless", "empty", "no motivation", "numb"] },
+  { tint: "mint", id: "bipolar", label: "Mood swings", prose: "bipolar disorder", aka: ["bipolar", "mood swing", "manic", "mania", "hypomania", "up and down"] },
+  { tint: "blush", id: "ptsd", label: "Trauma or PTSD", prose: "PTSD and trauma", aka: ["ptsd", "trauma", "flashback", "nightmare", "assault", "abuse", "combat"] },
+  { tint: "lilac", id: "ocd", label: "OCD", prose: "OCD", aka: ["ocd", "obsessive", "compulsive", "intrusive", "checking", "rituals"] },
+  { tint: "sky", id: "sleep", label: "Sleep", prose: "sleep problems", aka: ["sleep", "insomnia", "can't sleep", "cant sleep", "lying awake", "exhausted"] },
+  { tint: "blush", id: "perinatal", label: "Postpartum", prose: "postpartum mood", aka: ["postpartum", "perinatal", "pregnan", "after birth", "new mom", "new mother"] },
+  { tint: "sand", id: "substance", label: "Alcohol or drugs", prose: "alcohol and substance use", aka: ["alcohol", "drinking", "drugs", "substance", "weed", "opioid", "sober"] },
+  { tint: "mint", id: "other", label: "Something else", prose: "what you described", aka: ["something else", "not sure what", "other"] },
 ];
 
 export const NEEDS: { id: Need; label: string; short: string; detail: string }[] = [
@@ -275,5 +277,75 @@ export const NATIONAL_RESOURCES: Resource[] = [
     what: "Search psychiatrists by state, insurance, and who's taking new patients.",
     action: "Open the directory",
     href: "https://www.psychologytoday.com/us/psychiatrists",
+  },
+];
+
+
+/* ------------------------------------------------------------------ */
+/* Patient voices                                                      */
+/*                                                                     */
+/* Sample copy for the prototype — written for this demo, not real      */
+/* patients, and labelled as such on the page. Real testimonials need    */
+/* written authorisation and should never be paraphrased by a marketer.  */
+/* ------------------------------------------------------------------ */
+
+export interface Testimonial {
+  quote: string;
+  name: string;
+  city: string;
+  when: string;
+  tint: Tint;
+}
+
+export const RATING = { score: 4.8, count: 212 };
+
+export const TESTIMONIALS: Testimonial[] = [
+  {
+    quote:
+      "I'd been told for years it was just stress. She actually read what I wrote before we met, and we started from there instead of the beginning.",
+    name: "Marisol G.",
+    city: "Austin",
+    when: "October 2026",
+    tint: "lilac",
+  },
+  {
+    quote:
+      "Booked on a Sunday night, seen on Wednesday. I'd been on a four-month waitlist somewhere else.",
+    name: "Devin R.",
+    city: "Fort Worth",
+    when: "September 2026",
+    tint: "mint",
+  },
+  {
+    quote:
+      "It told me my copay was $30 before I booked. That sounds small but it's the reason I went through with it.",
+    name: "Priya S.",
+    city: "Plano",
+    when: "October 2026",
+    tint: "sky",
+  },
+  {
+    quote:
+      "Filling out forms is the thing I put off for months. I talked into my phone instead and it was done in ten minutes.",
+    name: "Jordan M.",
+    city: "Houston",
+    when: "August 2026",
+    tint: "apricot",
+  },
+  {
+    quote:
+      "Hablamos en español desde la primera cita. No tuve que explicarle nada dos veces.",
+    name: "Carmen V.",
+    city: "El Paso",
+    when: "September 2026",
+    tint: "blush",
+  },
+  {
+    quote:
+      "He never pushed medication on the first visit. He asked what I'd already tried and why I stopped.",
+    name: "Thomas A.",
+    city: "San Antonio",
+    when: "October 2026",
+    tint: "sand",
   },
 ];

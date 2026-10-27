@@ -61,7 +61,7 @@ function Progress({ step }: { step: Step }) {
       <div className="mx-auto max-w-3xl px-4 py-2 sm:px-6 sm:py-3">
         <div className="flex items-center gap-3 sm:hidden">
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
-            <div className="h-full rounded-full bg-slate-500 transition-all" style={{ width: `${pct}%` }} />
+            <div className="h-full rounded-full bg-gradient-to-r from-sage-500 to-slate-500 transition-all" style={{ width: `${pct}%` }} />
           </div>
           <span className="shrink-0 text-xs text-muted">
             {idx + 1} of {FLOW.length}
@@ -148,7 +148,7 @@ export function Shell({
       <CrisisStrip />
       {inFlow && <Progress step={step} />}
 
-      <main id="main" className="mx-auto w-full max-w-3xl flex-1 px-4 pb-16 pt-5 sm:px-6 sm:pt-9">
+      <main id="main" className="relative mx-auto w-full max-w-3xl flex-1 px-4 pb-16 pt-5 sm:px-6 sm:pt-9">
         {onBack && (
           <button
             onClick={onBack}
