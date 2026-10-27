@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useState } from "react";
-import { PRACTICE } from "@/lib/data";
+import { PRACTICE, PROVIDERS } from "@/lib/data";
 import { VISITS, type Prescription, type Visit, visitDate, when } from "@/lib/portal/mock";
 import { VoiceProvider } from "@/lib/voice";
 import { Login } from "@/components/portal/Login";
@@ -102,8 +102,22 @@ function Portal() {
             visit={moving}
             now={now}
             onKeep={() => { setMoving(null); window.scrollTo({ top: 0 }); }}
-            onCommit={(hours) =>
-              setVisits((vs) => vs.map((v) => (v.id === moving.id ? { ...v, hours } : v)))
+            onCommit={(hours, providerId) =>
+              setVisits((vs) =>
+                vs.map((v) =>
+                  v.id === moving.id
+                    ? {
+                        ...v,
+                        hours,
+                        providerId,
+                        providerName: (() => {
+                          const p = PROVIDERS.find((x) => x.id === providerId);
+                          return p ? `${p.credential === "MD" || p.credential === "DO" ? "Dr. " : ""}${p.name}` : v.providerName;
+                        })(),
+                      }
+                    : v,
+                ),
+              )
             }
             onMessage={() => ask(`About my ${moving.kind.toLowerCase()} with ${moving.providerName}: `)}
           />
