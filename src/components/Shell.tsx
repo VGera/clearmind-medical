@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { PRACTICE } from "@/lib/data";
 import type { Mode, Step } from "@/lib/types";
 import { Icon } from "./ui";
 
@@ -103,6 +104,35 @@ export function CrisisStrip() {
   );
 }
 
+/**
+ * Always on screen, every step. A phone number is the one thing that still
+ * works when the flow doesn't — and for this population, "I'd rather talk to a
+ * person" is a legitimate answer at any point, not a failure.
+ *
+ * It sits above the match screen's sticky hold bar, and `main` reserves room
+ * at the bottom so it never covers the chat composer or a Continue button.
+ */
+function HelpButton({ step }: { step: Step }) {
+  const clearsStickyBar = step === "match";
+  return (
+    <a
+      href={PRACTICE.phoneHref}
+      aria-label={`Need help? Call us at ${PRACTICE.phone}`}
+      className={`fixed right-4 z-40 inline-flex min-h-[3.25rem] items-center gap-2.5 rounded-full border border-slate-200 bg-panel px-4 text-slate-600 shadow-lift transition hover:bg-slate-50 sm:right-6 sm:px-5 ${
+        clearsStickyBar ? "bottom-[8.5rem] sm:bottom-6" : "bottom-5 sm:bottom-6"
+      }`}
+      style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
+    >
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-50">
+        <Icon name="phone" className="h-4 w-4" />
+      </span>
+      <span className="text-sm font-medium">
+        <span className="hidden sm:inline">Need help? </span>Call us
+      </span>
+    </a>
+  );
+}
+
 export function Shell({
   step,
   mode,
@@ -148,7 +178,7 @@ export function Shell({
       <CrisisStrip />
       {inFlow && <Progress step={step} />}
 
-      <main id="main" className="relative mx-auto w-full max-w-3xl flex-1 px-4 pb-16 pt-5 sm:px-6 sm:pt-9">
+      <main id="main" className="relative mx-auto w-full max-w-3xl flex-1 px-4 pb-28 pt-5 sm:px-6 sm:pb-24 sm:pt-9">
         {onBack && (
           <button
             onClick={onBack}
@@ -160,6 +190,8 @@ export function Shell({
         )}
         {children}
       </main>
+
+      <HelpButton step={step} />
 
       <footer className="border-t border-line bg-panel">
         <div className="mx-auto max-w-3xl px-4 py-7 text-xs leading-relaxed text-faint sm:px-6">

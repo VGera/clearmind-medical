@@ -159,3 +159,55 @@ export function formatPhone(digits: string): string {
 export function titleCase(s: string): string {
   return s.replace(/\b[a-z]/g, (m) => m.toUpperCase()).replace(/\s+/g, " ").trim();
 }
+
+/* ------------------------------------------------------------------ */
+/* Dates and names, for the chat's insurance lookup                     */
+/* ------------------------------------------------------------------ */
+
+const MONTHS = [
+  "january", "february", "march", "april", "may", "june",
+  "july", "august", "september", "october", "november", "december",
+];
+
+/** Accepts the ways people actually write a birthday. Returns yyyy-MM-dd. */
+export function parseBirthDate(input: string): string | null {
+  const t = input.toLowerCase().trim();
+  const iso = (y: number, m: number, d: number): string | null => {
+    if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+    const year = y < 100 ? (y > 30 ? 1900 + y : 2000 + y) : y;
+    const now = new Date().getFullYear();
+    if (year < 1900 || year > now) return null;
+    return `${year}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  };
+
+  // 1990-05-05
+  let m = t.match(/\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b/);
+  if (m) return iso(+m[1], +m[2], +m[3]);
+
+  // 05/05/1990 or 5-5-90  (US order)
+  m = t.match(/\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})\b/);
+  if (m) return iso(+m[3], +m[1], +m[2]);
+
+  // May 5 1990  /  5 May 1990
+  const mon = MONTHS.findIndex((name) => new RegExp(`\\b${name.slice(0, 3)}`).test(t));
+  if (mon >= 0) {
+    const nums = t.match(/\b\d{1,4}\b/g);
+    if (nums && nums.length >= 2) {
+      const day = nums.find((n) => +n >= 1 && +n <= 31);
+      const year = nums.find((n) => n.length === 4) ?? nums[nums.length - 1];
+      if (day && year) return iso(+year, mon + 1, +day);
+    }
+  }
+  return null;
+}
+
+/** "ada lovelace" -> { first, last }. Middle names fold into the first name. */
+export function parseName(input: string): { first: string; last: string } | null {
+  const parts = input
+    .replace(/\b(my name is|my name'?s|i am|i'?m|it'?s|this is|call me|name)\b/gi, " ")
+    .replace(/[^A-Za-z'\-\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length < 2) return null;
+  return { first: titleCase(parts.slice(0, -1).join(" ")), last: titleCase(parts[parts.length - 1]) };
+}

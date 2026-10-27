@@ -3,8 +3,11 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { CARRIERS, CONDITIONS, NEEDS, OTHER_PAYERS, OTHER_STATE, PRACTICE, stateName } from "@/lib/data";
 import {
-  detectCrisis, matchCarrier, matchConditions, matchNeed, matchOtherPayer, matchState, matchYesNo,
+  detectCrisis, matchCarrier, matchConditions, matchNeed, matchOtherPayer, matchState,
+  matchYesNo, parseBirthDate, parseName,
 } from "@/lib/parse";
+import { healthDiscover, healthEligibility, looksLikeMedicaid, maskMemberId } from "@/lib/verified/mock";
+import type { HealthDiscovery, VPayer } from "@/lib/verified/types";
 import { blockerFor, type Intake } from "@/lib/types";
 import { useVoice } from "@/lib/voice";
 import { Button, Card, Icon } from "./ui";
@@ -17,6 +20,24 @@ interface Turn { lines: string[]; chips?: Chip[] }
 interface Msg { id: number; who: "bot" | "user"; text: string; chips?: Chip[]; kind?: "crisis" | "blocked" }
 
 const AGENT = "Mira";
+const LOOKUP = "look it up for me";
+
+function toCarrier(payer: VPayer): "bcbs" | "uhc" | "aetna" | "cigna" | "oscar" | "other" {
+  const n = `${payer.name} ${payer.ids.join(" ")}`.toLowerCase();
+  if (/blue cross|bcbs/.test(n)) return "bcbs";
+  if (/unitedhealth|uhc/.test(n)) return "uhc";
+  if (/aetna/.test(n)) return "aetna";
+  if (/cigna/.test(n)) return "cigna";
+  if (/oscar/.test(n)) return "oscar";
+  return "other";
+}
+
+/** The chat's side-quest for 1-Click Health, so autofill isn't form-only. */
+type Lookup =
+  | null
+  | { phase: "name" }
+  | { phase: "dob"; first: string; last: string }
+  | { phase: "pick"; results: HealthDiscovery[]; first: string; last: string; birthDate: string };
 
 function nextSlot(i: Intake): Slot {
   if (!i.state) return "state";
@@ -43,8 +64,13 @@ function promptFor(slot: Slot): Turn {
       };
     case "carrier":
       return {
-        lines: ["Do you have insurance? Just the name — I don't need your card."],
-        chips: CARRIERS.map((c) => ({ label: c.short, value: c.label })),
+        lines: [
+          "Do you have insurance? I can look it up from your name and birthday, so you don't have to find your card — or just tell me who it's with.",
+        ],
+        chips: [
+          { label: "Look it up for me", value: LOOKUP },
+          ...CARRIERS.map((c) => ({ label: c.short, value: c.label })),
+        ],
       };
     case "otherPayer":
       return { lines: ["Who's it through?"], chips: OTHER_PAYERS.map((p) => ({ label: p.label, value: p.label })) };
@@ -150,6 +176,7 @@ export function Chat({
   const [finished, setFinished] = useState(false);
   /** Held while a crisis disclosure is on screen, so intake doesn't barrel on. */
   const [paused, setPaused] = useState<Turn | null>(null);
+  const [lookup, setLookup] = useState<Lookup>(null);
   const idRef = useRef(0);
   const scroller = useRef<HTMLDivElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
@@ -223,6 +250,130 @@ export function Chat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, intake, finished, blocked, paused]);
 
+  /** Applies a discovered plan exactly as the form path does. */
+  const applyFound = useCallback(
+    async (hit: HealthDiscovery, who: { first: string; last: string; birthDate: string }) => {
+      const carrier = toCarrier(hit.payer);
+      const medicaid = looksLikeMedicaid(hit.payer.name);
+      const next: Partial<Intake> = {
+        carrier,
+        otherPayer: hit.isMedicare ? "medicare" : medicaid ? "medicaid" : carrier === "other" ? "commercial" : null,
+        selfPay: false,
+        memberId: hit.memberId,
+        discovery: hit,
+        insuranceSource: "autofill",
+        account: { ...intake.account, legalFirst: who.first, legalLast: who.last, dob: who.birthDate },
+      };
+      patch(next);
+      setLookup(null);
+
+      const merged = { ...intake, ...next } as Intake;
+      const b = blockerFor(merged);
+      if (b) {
+        setBlocked(true);
+        say([`I found your ${hit.payer.name}.`, blockedCopy(b, merged)], undefined, "blocked");
+        return;
+      }
+
+      say([
+        `Found it — ${hit.payer.name}, member ID ${maskMemberId(hit.memberId)}. That's on file now, so you won't be asked for your card.`,
+      ]);
+
+      if (!hit.isMedicare && !medicaid) {
+        const elig = await healthEligibility(hit, {
+          firstName: who.first,
+          lastName: who.last,
+          birthDate: who.birthDate,
+        });
+        if (elig) patch({ eligibility: elig });
+      }
+
+      const upcoming = nextSlot({ ...merged, symptoms: merged.symptoms });
+      const p = promptFor(upcoming);
+      const t = setTimeout(() => say(p.lines, p.chips), 1400);
+      timers.current.push(t);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [intake, patch, say],
+  );
+
+  /** Returns true when the message was consumed by the lookup. */
+  const handleLookup = useCallback(
+    (text: string): boolean => {
+      if (!lookup) return false;
+
+      if (/^(cancel|stop|never ?mind|skip|forget it)$/i.test(text.trim())) {
+        setLookup(null);
+        const p = promptFor("carrier");
+        say(["No problem — which one is it?"], p.chips);
+        return true;
+      }
+
+      if (lookup.phase === "name") {
+        const n = parseName(text);
+        if (!n) {
+          say(["I need a first and last name to search — what's your full name?"]);
+          return true;
+        }
+        setLookup({ phase: "dob", first: n.first, last: n.last });
+        say([`Thanks, ${n.first}. And your date of birth? Any format works — 05/05/1990 is fine.`]);
+        return true;
+      }
+
+      if (lookup.phase === "dob") {
+        const dob = parseBirthDate(text);
+        if (!dob) {
+          say(["I couldn't read that as a date. Could you write it like 05/05/1990?"]);
+          return true;
+        }
+        const who = { first: lookup.first, last: lookup.last, birthDate: dob };
+        say(["One moment — checking with your insurer."]);
+        void (async () => {
+          const res = await healthDiscover({
+            firstName: who.first,
+            lastName: who.last,
+            birthDate: dob,
+            state: intake.state,
+          });
+          if (res.status === "found" && res.results.length === 1) {
+            await applyFound(res.results[0], who);
+            return;
+          }
+          if (res.status === "found") {
+            setLookup({ phase: "pick", results: res.results, ...who });
+            say(
+              ["I found more than one. Which would you like to use?"],
+              res.results.map((r) => ({ label: r.payer.name, value: r.payer.name })),
+            );
+            return;
+          }
+          setLookup(null);
+          patch({ account: { ...intake.account, legalFirst: who.first, legalLast: who.last, dob } });
+          say(
+            [
+              "I couldn't find a plan under that name and birthday — that happens for about one in five people, and it doesn't mean anything is wrong. Which insurer is it?",
+            ],
+            promptFor("carrier").chips?.filter((c) => c.value !== LOOKUP),
+          );
+        })();
+        return true;
+      }
+
+      // phase === "pick"
+      const chosen =
+        lookup.results.find((r) => r.payer.name.toLowerCase() === text.trim().toLowerCase()) ??
+        lookup.results.find((r) => text.toLowerCase().includes(r.payer.name.split(" ")[0].toLowerCase()));
+      if (!chosen) {
+        say(["Sorry — tap whichever of those two is yours."]);
+        return true;
+      }
+      void applyFound(chosen, { first: lookup.first, last: lookup.last, birthDate: lookup.birthDate });
+      return true;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [lookup, intake, patch, say, applyFound],
+  );
+
   const handle = useCallback(
     (raw: string) => {
       const text = raw.trim();
@@ -249,7 +400,16 @@ export function Chat({
         return;
       }
 
+      if (handleLookup(text)) return;
+
       const asking = nextSlot(intake);
+
+      if (asking === "carrier" && text.trim().toLowerCase() === LOOKUP) {
+        setLookup({ phase: "name" });
+        say(["Happy to. What's your full name — first and last? It goes on your chart either way, so you won't be asked twice."]);
+        return;
+      }
+
       const next: Intake = { ...intake };
       const filled: Slot[] = [];
 
@@ -404,7 +564,7 @@ export function Chat({
       say(turn.lines, turn.chips);
       void pending;
     },
-    [blocked, finished, paused, intake, patch, say, onComplete],
+    [blocked, finished, paused, intake, patch, say, onComplete, handleLookup],
   );
 
   const resume = () => {
@@ -423,6 +583,7 @@ export function Chat({
 
   const lastChips = [...msgs].reverse().find((m) => m.who === "bot" && m.chips)?.chips;
   const showChips = !typing && !blocked && !finished && !paused ? lastChips : undefined;
+  void lookup;
 
   return (
     <div>
