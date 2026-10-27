@@ -1,3 +1,5 @@
+import { resolveSlot } from "../data";
+
 /**
  * Portal data. Fictional, in-memory, no network — the shape a real build would
  * fetch, so the components are written against something realistic.
@@ -155,8 +157,15 @@ export const RX_LABEL: Record<RxStatus, { text: string; tone: "sage" | "slate" |
   needs_visit: { text: "Needs a visit to renew", tone: "sand" },
 };
 
+/**
+ * Offsets are relative to "now", so without snapping a fixture booked "+26h"
+ * renders at whatever o'clock the page happens to be opened — a visit at
+ * 12:04 AM. resolveSlot keeps every displayed time inside clinic hours, and
+ * it's the same helper the booking flow uses, so the portal can never show a
+ * time the funnel wouldn't have offered.
+ */
 export function visitDate(now: Date, hours: number): Date {
-  return new Date(now.getTime() + hours * 3600_000);
+  return resolveSlot(now, hours);
 }
 
 export function when(d: Date, now: Date): string {

@@ -44,11 +44,15 @@ export function Reschedule({
      through resolveSlots, the same helper the booking flow uses, so the pills
      here read in order and can't show the same time twice. */
   const slots = useMemo(() => {
-    const hours = (provider?.slotHours ?? [])
-      .filter((h) => Math.abs(h - visit.hours) > 0.5)
-      .sort((a, b) => a - b);
+    const hours = (provider?.slotHours ?? []).sort((a, b) => a - b);
     const dates = resolveSlots(now, hours);
-    return hours.map((h, i) => ({ hours: h, date: dates[i] }));
+    /* Compare the resolved times, not the raw offsets: two different offsets
+       can clamp onto the same clinic hour, which is how the time you already
+       have ended up offered as an alternative to itself. */
+    const booked = visitDate(now, visit.hours).getTime();
+    return hours
+      .map((h, i) => ({ hours: h, date: dates[i] }))
+      .filter((s) => s.date.getTime() !== booked);
   }, [provider, visit.hours, now]);
 
   const dateFor = (h: number) => slots.find((s) => s.hours === h)?.date ?? null;

@@ -178,7 +178,16 @@ export function Shell({
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-2 sm:px-6 sm:py-3">
           <Wordmark onClick={onHome} />
           <div className="flex shrink-0 items-center gap-2">
-            {canSwitchMode && <ModeSwitch mode={mode} onChange={onMode} />}
+            {canSwitchMode ? (
+              <ModeSwitch mode={mode} onChange={onMode} />
+            ) : (
+              <a
+                href="/portal"
+                className="inline-flex min-h-[2.75rem] items-center rounded-full border border-line bg-panel px-4 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+              >
+                Sign in
+              </a>
+            )}
           </div>
         </div>
       </header>
