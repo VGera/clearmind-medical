@@ -119,6 +119,8 @@ export interface Provider {
   accepts: Carrier[];
   languages: string[];
   bio: string;
+  /** Two lines a patient can decide on: how they work, and who they see. */
+  approach: string;
   rating: number;
   reviews: number;
   /** Hours from now for each open slot, ascending. */
@@ -137,6 +139,8 @@ export const PROVIDERS: Provider[] = [
     accepts: ["bcbs", "uhc", "aetna", "cigna", "oscar"],
     languages: ["English"],
     bio: "Unhurried first visits. Never rushes a medication decision.",
+    approach:
+      "Board-certified psychiatrist, 14 years. Most of her patients are adults getting an ADHD evaluation for the first time, often alongside anxiety that nobody treated. She explains the reasoning behind every option and will say plainly when she thinks medication isn't the answer.",
     rating: 4.9,
     reviews: 312,
     slotHours: [26, 30, 49, 73, 77],
@@ -152,6 +156,8 @@ export const PROVIDERS: Provider[] = [
     accepts: ["bcbs", "uhc", "aetna", "cigna", "oscar"],
     languages: ["English", "Hindi", "Tamil"],
     bio: "Keeps evening hours. Quick to answer between visits.",
+    approach:
+      "Psychiatric nurse practitioner, 9 years. Sees new patients faster than anyone on the team and keeps evening slots for people who can't step away from work. Practical, direct, and answers portal messages the same day where she can.",
     rating: 4.8,
     reviews: 486,
     slotHours: [5, 8, 27, 31, 52],
@@ -167,6 +173,8 @@ export const PROVIDERS: Provider[] = [
     accepts: ["bcbs", "uhc", "cigna"],
     languages: ["English", "Spanish"],
     bio: "Mood disorders and long-term stability. Works closely with therapists.",
+    approach:
+      "Psychiatrist, 18 years, focused on bipolar I and II and depression that hasn't responded to earlier treatment. Deliberate and data-driven — he tracks how you're doing between visits and coordinates with your therapist if you have one.",
     rating: 4.9,
     reviews: 274,
     slotHours: [80, 84, 104, 128],
@@ -182,6 +190,8 @@ export const PROVIDERS: Provider[] = [
     accepts: ["bcbs", "aetna", "oscar"],
     languages: ["English", "German"],
     bio: "Trauma-informed. You set how much you share, and when.",
+    approach:
+      "Psychiatrist, 11 years, trauma-focused — including veterans and survivors of assault. She paces the first visit around what you're ready to talk about, and is explicit that you never have to recount anything to be taken seriously.",
     rating: 5.0,
     reviews: 198,
     slotHours: [53, 57, 76, 100],
@@ -197,6 +207,8 @@ export const PROVIDERS: Provider[] = [
     accepts: ["bcbs", "aetna", "cigna"],
     languages: ["Spanish", "English"],
     bio: "Pregnancy and postpartum care. Sees patients in Spanish or English.",
+    approach:
+      "Psychiatrist, 16 years, in perinatal and reproductive psychiatry as well as general anxiety and depression. Careful about medication in pregnancy and breastfeeding, and used to families being part of the conversation when you want them to be.",
     rating: 4.9,
     reviews: 221,
     slotHours: [55, 79, 103, 127],
@@ -212,6 +224,8 @@ export const PROVIDERS: Provider[] = [
     accepts: ["uhc", "cigna", "oscar"],
     languages: ["English"],
     bio: "Evenings and weekends. Non-judgmental about drinking and drug use.",
+    approach:
+      "Psychiatric nurse practitioner, 7 years, treating anxiety and depression alongside alcohol and substance use. Harm-reduction minded: he'll work with where you actually are rather than requiring you to stop first.",
     rating: 4.7,
     reviews: 163,
     slotHours: [12, 34, 58, 82],

@@ -7,9 +7,9 @@ import { Icon } from "./ui";
 
 export const FLOW: { key: Step; label: string; short: string }[] = [
   { key: "fit", label: "Fit check", short: "Fit" },
-  { key: "care", label: "Your care", short: "Care" },
-  { key: "match", label: "Your match", short: "Match" },
-  { key: "account", label: "Your account", short: "Details" },
+  { key: "care", label: "What's going on", short: "Care" },
+  { key: "match", label: "Choose a provider", short: "Match" },
+  { key: "account", label: "Your details", short: "Details" },
   { key: "payment", label: "Payment", short: "Pay" },
 ];
 
@@ -52,31 +52,41 @@ export function ModeSwitch({ mode, onChange }: { mode: Mode; onChange: (m: Mode)
   );
 }
 
-/** One quiet bar on a phone; named steps once there's room for them. */
+/**
+ * Pinned under the header, so where-you-are never scrolls away. Every width
+ * shows the step's name and the count — "Care · step 2 of 5" — because
+ * "2 of 5" alone doesn't tell you what you're in the middle of.
+ */
 function Progress({ step }: { step: Step }) {
   const idx = FLOW.findIndex((f) => f.key === step);
   if (idx < 0) return null;
-  const pct = Math.round(((idx + 1) / FLOW.length) * 100);
+  const current = FLOW[idx];
   return (
-    <nav aria-label="Progress" className="border-b border-line bg-paper/80 backdrop-blur">
-      <div className="mx-auto max-w-3xl px-4 py-2 sm:px-6 sm:py-3">
-        <div className="flex items-center gap-3 sm:hidden">
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
-            <div className="h-full rounded-full bg-gradient-to-r from-sage-500 to-slate-500 transition-all" style={{ width: `${pct}%` }} />
-          </div>
-          <span className="shrink-0 text-xs text-muted">
-            {idx + 1} of {FLOW.length}
-          </span>
+    <nav aria-label="Progress" className="border-b border-line bg-paper">
+      <div className="mx-auto max-w-3xl px-4 py-2.5 sm:px-6">
+        <div className="flex items-center justify-between gap-3">
+          <p className="min-w-0 truncate text-sm font-medium text-ink">{current.label}</p>
+          <p className="shrink-0 text-xs text-muted">
+            Step {idx + 1} of {FLOW.length}
+          </p>
         </div>
-        <ol className="hidden items-center gap-1.5 sm:flex">
+        <ol className="mt-2 flex items-center gap-1.5">
           {FLOW.map((f, i) => (
-            <li key={f.key} aria-current={i === idx ? "step" : undefined} className="flex min-w-0 flex-1 items-center gap-1.5">
+            <li
+              key={f.key}
+              aria-current={i === idx ? "step" : undefined}
+              className="flex min-w-0 flex-1 items-center gap-1.5"
+            >
               <span
                 className={`h-1.5 min-w-0 flex-1 rounded-full transition ${
-                  i < idx ? "bg-slate-300" : i === idx ? "bg-slate-500" : "bg-line"
+                  i < idx
+                    ? "bg-sage-500"
+                    : i === idx
+                      ? "bg-gradient-to-r from-sage-500 to-slate-500"
+                      : "bg-line"
                 }`}
               />
-              <span className={`shrink-0 text-xs ${i === idx ? "font-medium text-slate-600" : "text-muted"}`}>
+              <span className={`hidden shrink-0 text-xs sm:inline ${i === idx ? "font-medium text-slate-600" : "text-muted"}`}>
                 {f.short}
               </span>
             </li>
@@ -163,10 +173,8 @@ export function Shell({
         Skip to content
       </a>
 
-      <header
-        className="sticky top-0 z-30 border-b border-line bg-paper"
-        style={{ paddingTop: "env(safe-area-inset-top)" }}
-      >
+      <div className="sticky top-0 z-30" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+      <header className="border-b border-line bg-paper">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-2 sm:px-6 sm:py-3">
           <Wordmark onClick={onHome} />
           <div className="flex shrink-0 items-center gap-2">
@@ -177,6 +185,7 @@ export function Shell({
 
       <CrisisStrip />
       {inFlow && <Progress step={step} />}
+      </div>
 
       <main id="main" className="relative mx-auto w-full max-w-3xl flex-1 px-4 pb-28 pt-5 sm:px-6 sm:pb-24 sm:pt-9">
         {onBack && (

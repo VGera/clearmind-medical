@@ -81,6 +81,18 @@ function ProviderCard({
 
       <p className="mt-3.5 text-[0.95rem] leading-relaxed text-muted">{p.bio}</p>
 
+      {badge ? (
+        <p className="mt-2.5 text-[0.95rem] leading-relaxed text-muted">{p.approach}</p>
+      ) : (
+        <details className="mt-2.5 group">
+          <summary className="inline-flex min-h-[2.75rem] cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-slate-600">
+            About {p.name.split(" ")[0]}
+            <Icon name="arrow" className="h-4 w-4 rotate-90 transition group-open:-rotate-90" />
+          </summary>
+          <p className="mt-1.5 text-[0.95rem] leading-relaxed text-muted">{p.approach}</p>
+        </details>
+      )}
+
       {r.reasons.length > 0 && (
         <ul className="mt-3.5 space-y-1.5">
           {r.reasons.map((reason) => (
