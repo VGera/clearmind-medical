@@ -1,27 +1,70 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { PRACTICE } from "@/lib/data";
 import {
   JOIN_WINDOW_MINUTES, type Visit, visitDate, when,
 } from "@/lib/portal/mock";
 import { Badge, Button, Card, Icon } from "../ui";
+import { classifyMediaError, MediaTrouble, mediaBlocked, type MediaFail } from "./VideoVisit";
 
 function minutesUntil(now: Date, v: Visit): number {
   return (visitDate(now, v.hours).getTime() - now.getTime()) / 60000;
 }
 
 /** Joining is the whole point of the screen, so it gets the primary button. */
-function JoinBlock({ v, now }: { v: Visit; now: Date }) {
+function JoinBlock({ v, now, onJoin }: { v: Visit; now: Date; onJoin: () => void }) {
   const mins = minutesUntil(now, v);
-  const open = mins <= JOIN_WINDOW_MINUTES;
+  const canJoin = mins <= JOIN_WINDOW_MINUTES;
   const [checking, setChecking] = useState(false);
-  const [checked, setChecked] = useState(false);
+  const [fail, setFail] = useState<MediaFail | null>(null);
+  const [found, setFound] = useState<{ cam: string; mic: string } | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const vidRef = useRef<HTMLVideoElement | null>(null);
+
+  const release = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    if (vidRef.current) vidRef.current.srcObject = null;
+    setFound(null);
+  }, []);
+
+  /* The check turns a real camera on, so it goes off again when this unmounts. */
+  useEffect(() => () => release(), [release]);
+
+  /* The preview element only exists once there's something to show. */
+  useEffect(() => {
+    if (found && vidRef.current && streamRef.current) vidRef.current.srcObject = streamRef.current;
+  }, [found]);
+
+  const check = async () => {
+    const blocked = mediaBlocked();
+    if (blocked) { setFail(blocked); return; }
+    setChecking(true);
+    setFail(null);
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const cam = s.getVideoTracks()[0];
+      const mic = s.getAudioTracks()[0];
+      if (!cam || !mic) {
+        s.getTracks().forEach((t) => t.stop());
+        setFail("missing");
+        return;
+      }
+      streamRef.current = s;
+      /* Report the devices the browser actually handed us, not a reassurance. */
+      setFound({ cam: cam.label || "Your camera", mic: mic.label || "Your microphone" });
+    } catch (e) {
+      setFail(classifyMediaError(e));
+    } finally {
+      setChecking(false);
+    }
+  };
 
   return (
     <div className="mt-5 border-t border-line pt-4">
-      {open ? (
-        <Button size="lg" className="w-full sm:w-auto">
+      {canJoin ? (
+        <Button size="lg" className="w-full sm:w-auto" onClick={onJoin}>
           <Icon name="video" className="h-5 w-5" />
           Join your visit
         </Button>
@@ -30,24 +73,57 @@ function JoinBlock({ v, now }: { v: Visit; now: Date }) {
           <p className="text-[0.95rem] text-muted">
             The join button opens {JOIN_WINDOW_MINUTES} minutes before. We&rsquo;ll text you the link too.
           </p>
-          <div className="mt-3.5 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button
-              variant="secondary"
-              className="w-full sm:w-auto"
-              onClick={() => {
-                setChecking(true);
-                setTimeout(() => { setChecking(false); setChecked(true); }, 1400);
-              }}
-            >
-              <Icon name="mic" className="h-4 w-4" />
-              {checking ? "Checking…" : "Test my camera and mic"}
-            </Button>
-            {checked && (
-              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-sage-600">
-                <Icon name="check" className="h-4 w-4" /> Camera, microphone and connection all look good
-              </span>
-            )}
-          </div>
+          {!found && (
+            <div className="mt-3.5">
+              <Button variant="secondary" className="w-full sm:w-auto" onClick={() => void check()} disabled={checking}>
+                <Icon name="mic" className="h-4 w-4" />
+                {checking ? "Checking…" : "Test my camera and mic"}
+              </Button>
+            </div>
+          )}
+
+          {fail && (
+            <div className="mt-3.5">
+              <MediaTrouble kind={fail} onRetry={() => void check()} />
+            </div>
+          )}
+
+          {found && (
+            <div className="rise mt-3.5">
+              <p className="inline-flex items-center gap-1.5 text-sm font-medium text-sage-600">
+                <Icon name="check" className="h-4 w-4" /> Camera and microphone are both working
+              </p>
+              <div className="mt-2.5 max-w-[14rem] overflow-hidden rounded-xl2 border border-line bg-slate-700">
+                {/* muted + playsInline + autoPlay, or mobile browsers won't render it */}
+                <video
+                  ref={vidRef}
+                  muted
+                  playsInline
+                  autoPlay
+                  aria-label="Your camera, live"
+                  className="aspect-video w-full scale-x-[-1] object-cover"
+                />
+              </div>
+              <dl className="mt-2.5 space-y-1 text-sm text-muted">
+                <div className="flex gap-1.5">
+                  <dt className="font-medium text-ink">Camera:</dt>
+                  <dd className="min-w-0 break-words">{found.cam}</dd>
+                </div>
+                <div className="flex gap-1.5">
+                  <dt className="font-medium text-ink">Microphone:</dt>
+                  <dd className="min-w-0 break-words">{found.mic}</dd>
+                </div>
+              </dl>
+              <p className="mt-2.5 text-sm leading-relaxed text-muted">
+                That&rsquo;s you, live. When you join you&rsquo;ll also get a level meter to check your voice
+                registers.
+              </p>
+              <Button variant="secondary" className="mt-3 w-full sm:w-auto" onClick={release}>
+                Done — switch my camera off
+              </Button>
+            </div>
+          )}
+
           <p className="mt-2.5 text-xs leading-relaxed text-muted">
             Worth doing once, now, rather than discovering a problem at the start of your appointment.
           </p>
@@ -100,12 +176,16 @@ export function Visits({
   onOpen,
   onCancel,
   onMessage,
+  onReschedule,
+  onJoin,
 }: {
   visits: Visit[];
   now: Date;
   onOpen: (v: Visit) => void;
   onCancel: (id: string) => void;
   onMessage: () => void;
+  onReschedule: (v: Visit) => void;
+  onJoin: (v: Visit) => void;
 }) {
   const upcoming = visits.filter((v) => v.status === "upcoming");
   const past = visits.filter((v) => v.status !== "upcoming");
@@ -138,13 +218,13 @@ export function Visits({
                 {v.providerName} · video · {v.minutes} minutes
               </p>
 
-              <JoinBlock v={v} now={now} />
+              <JoinBlock v={v} now={now} onJoin={() => onJoin(v)} />
 
               <div className="mt-5 flex flex-col flex-wrap items-start gap-2 border-t border-line pt-4 sm:flex-row sm:items-center">
-                <Button variant="secondary" className="w-full sm:w-auto" onClick={() => onOpen(v)}>
+                <Button variant="secondary" className="w-full sm:w-auto" onClick={() => onReschedule(v)}>
                   <Icon name="clock" className="h-4 w-4" /> Reschedule
                 </Button>
-                <CancelFlow v={v} onCancel={() => onCancel(v.id)} onReschedule={() => onOpen(v)} />
+                <CancelFlow v={v} onCancel={() => onCancel(v.id)} onReschedule={() => onReschedule(v)} />
                 <button
                   onClick={onMessage}
                   className="inline-flex min-h-[2.75rem] items-center gap-2 px-1 text-sm text-slate-600"

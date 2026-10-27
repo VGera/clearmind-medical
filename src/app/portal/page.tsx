@@ -7,6 +7,8 @@ import { VoiceProvider } from "@/lib/voice";
 import { Login } from "@/components/portal/Login";
 import { Messages } from "@/components/portal/Messages";
 import { Prescriptions } from "@/components/portal/Prescriptions";
+import { Reschedule } from "@/components/portal/Reschedule";
+import { VideoVisit } from "@/components/portal/VideoVisit";
 import { VisitDetail } from "@/components/portal/VisitDetail";
 import { Visits } from "@/components/portal/Visits";
 import { Badge, Button, Card, Icon } from "@/components/ui";
@@ -25,13 +27,18 @@ function Portal() {
   const [tab, setTab] = useState<Tab>("visits");
   const [visits, setVisits] = useState<Visit[]>(VISITS);
   const [open, setOpen] = useState<Visit | null>(null);
+  const [moving, setMoving] = useState<Visit | null>(null);
+  const [calling, setCalling] = useState<Visit | null>(null);
   const [seed, setSeed] = useState<string | undefined>();
 
   const provider = "Dr. Okafor";
 
+  /* Leaving the tab unmounts the call, which is also what stops the camera. */
   const go = useCallback((t: Tab) => {
     setTab(t);
     setOpen(null);
+    setMoving(null);
+    setCalling(null);
     window.scrollTo({ top: 0 });
   }, []);
 
@@ -86,7 +93,23 @@ function Portal() {
       </header>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-28 pt-6 sm:px-6 sm:pb-24">
-        {tab === "visits" && !open && (
+        {tab === "visits" && calling && (
+          <VideoVisit visit={calling} onLeave={() => { setCalling(null); window.scrollTo({ top: 0 }); }} />
+        )}
+
+        {tab === "visits" && !calling && moving && (
+          <Reschedule
+            visit={moving}
+            now={now}
+            onKeep={() => { setMoving(null); window.scrollTo({ top: 0 }); }}
+            onCommit={(hours) =>
+              setVisits((vs) => vs.map((v) => (v.id === moving.id ? { ...v, hours } : v)))
+            }
+            onMessage={() => ask(`About my ${moving.kind.toLowerCase()} with ${moving.providerName}: `)}
+          />
+        )}
+
+        {tab === "visits" && !calling && !moving && !open && (
           <>
             {next && (
               <Card className="mb-6 border-tint-skyInk/15 bg-gradient-to-br from-tint-lilac via-tint-sky/60 to-tint-mint p-5">
@@ -105,11 +128,13 @@ function Portal() {
                 setVisits((vs) => vs.map((v) => (v.id === id ? { ...v, status: "cancelled" } : v)))
               }
               onMessage={() => ask("")}
+              onReschedule={(v) => { setMoving(v); window.scrollTo({ top: 0 }); }}
+              onJoin={(v) => { setCalling(v); window.scrollTo({ top: 0 }); }}
             />
           </>
         )}
 
-        {tab === "visits" && open && (
+        {tab === "visits" && !calling && !moving && open && (
           <VisitDetail
             visit={open}
             now={now}
