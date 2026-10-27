@@ -104,9 +104,7 @@ export function Landing({ onStart }: { onStart: (mode: "form" | "chat") => void 
         <h2 className="font-serif text-[1.2rem] text-ink">How we think about this</h2>
         <p className="mt-2.5 text-[0.95rem] leading-relaxed text-tint-lilacInk">
           Brains work differently — that isn&rsquo;t the thing we&rsquo;re treating. We&rsquo;re here for the parts
-          making life harder than it needs to be: the sleep, the focus, the dread, whatever it is for you. You
-          decide what you&rsquo;d like to change, and we won&rsquo;t try to fix anything you haven&rsquo;t asked us
-          to.
+          making life harder than it needs to be: the sleep, the focus, the dread, whatever it is for you.
         </p>
       </Card>
 

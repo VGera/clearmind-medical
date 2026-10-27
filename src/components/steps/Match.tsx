@@ -82,30 +82,41 @@ function ProviderCard({
         </div>
       </div>
 
-      <p className="mt-3.5 text-[0.95rem] leading-relaxed text-muted">{p.bio}</p>
+      {/* A short, scannable summary. The long description lives behind About,
+          on every card — the headline cards were carrying six lines of prose at
+          the exact moment someone is trying to choose. Each card is marked in
+          the provider's own colour so the two are easy to tell apart. */}
+      <ul className="mt-3.5 space-y-2">
+        {[p.bio, ...r.reasons].map((line) => (
+          <li key={line} className="flex items-start gap-2.5 text-[0.95rem] leading-relaxed text-ink">
+            <span
+              aria-hidden="true"
+              className="mt-[0.45rem] h-1.5 w-1.5 shrink-0 rounded-full"
+              style={{ background: p.tint }}
+            />
+            {line}
+          </li>
+        ))}
+      </ul>
 
-      {badge ? (
-        <p className="mt-2.5 text-[0.95rem] leading-relaxed text-muted">{p.approach}</p>
-      ) : (
-        <details className="mt-2.5 group">
-          <summary className="inline-flex min-h-[2.75rem] cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-slate-600">
-            About {p.name.split(" ")[0]}
-            <Icon name="arrow" className="h-4 w-4 rotate-90 transition group-open:-rotate-90" />
-          </summary>
-          <p className="mt-1.5 text-[0.95rem] leading-relaxed text-muted">{p.approach}</p>
-        </details>
-      )}
-
-      {r.reasons.length > 0 && (
-        <ul className="mt-3.5 space-y-1.5">
-          {r.reasons.map((reason) => (
-            <li key={reason} className="flex items-start gap-2 text-[0.95rem] text-ink">
-              <span className="mt-0.5 shrink-0 text-sage-500"><Icon name="check" className="h-4 w-4" /></span>
-              {reason}
-            </li>
-          ))}
-        </ul>
-      )}
+      <details className="group mt-3">
+        <summary
+          /* The provider's colour carries the bullets and the panel; the label
+             itself stays slate, because the lighter tints don't clear AA at
+             14px. */
+          className="inline-flex min-h-[2.75rem] cursor-pointer list-none items-center gap-1.5 rounded-full px-3.5 text-sm font-medium text-slate-600 transition"
+          style={{ background: `${p.tint}1a` }}
+        >
+          About {p.name.split(" ")[0]}
+          <Icon name="arrow" className="h-4 w-4 rotate-90 transition group-open:-rotate-90" />
+        </summary>
+        <p
+          className="mt-2.5 rounded-xl2 px-4 py-3.5 text-[0.95rem] leading-relaxed text-ink"
+          style={{ background: `${p.tint}0f` }}
+        >
+          {p.approach}
+        </p>
+      </details>
 
       <div className="mt-5 border-t border-line pt-4">
         <div className="flex flex-wrap gap-2" role="group" aria-label={`Open times with ${who}`}>
