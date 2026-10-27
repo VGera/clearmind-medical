@@ -65,7 +65,8 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
 
   const recRef = useRef<SpeechRecognitionLike | null>(null);
   const handlerRef = useRef<ResultHandler | null>(null);
-  const finalRef = useRef("");
+  /** Finalised text keyed by result index, so a re-delivered result can't double up. */
+  const finalsRef = useRef<string[]>([]);
 
   useEffect(() => {
     let off = false;
@@ -129,26 +130,40 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
         rec.interimResults = true;
         rec.maxAlternatives = 1;
         handlerRef.current = onResult;
-        finalRef.current = "";
+        finalsRef.current = [];
 
         rec.onstart = () => { setListening(true); setTarget(nextTarget); };
         rec.onresult = (e: SREvent) => {
           let live = "";
           for (let i = e.resultIndex; i < e.results.length; i++) {
             const r = e.results[i];
-            if (r.isFinal) finalRef.current += r[0].transcript;
+            /* Assign by index rather than concatenate: Chrome may re-deliver a
+               result that is already final, and appending would duplicate it. */
+            if (r.isFinal) finalsRef.current[i] = r[0].transcript;
             else live += r[0].transcript;
           }
-          setInterim(live);
-          if (finalRef.current) handlerRef.current?.(finalRef.current.trim(), false);
+          /* Show what has been recognised SO FAR, not just the fragment still
+             in flight. As soon as a phrase is finalised it leaves `live`, so
+             publishing `live` alone made the text appear and vanish — and with
+             continuous recognition nothing is committed until the user stops,
+             so the field looked dead the whole time they were speaking. */
+          const soFar = `${finalsRef.current.join("")}${live}`.replace(/\s+/g, " ").trimStart();
+          setInterim(soFar);
+          if (soFar) handlerRef.current?.(soFar, false);
         };
         rec.onerror = (e: SRErrorEvent) => {
           if (e.error === "not-allowed" || e.error === "service-not-allowed") {
             setError("Your browser blocked the microphone. Allow mic access, or type instead.");
           } else if (e.error === "no-speech") {
             setError("I didn't hear anything. Tap the mic and try again, or type it.");
+          } else if (e.error === "audio-capture") {
+            setError("No microphone was found. Check which input your browser is using, or type instead.");
+          } else if (e.error === "network") {
+            /* Chrome streams audio to a Google service; this is the failure
+               when it can't reach it, and it has nothing to do with the mic. */
+            setError("Voice typing couldn't reach the speech service. Typing works — or try again in a moment.");
           } else if (e.error !== "aborted") {
-            setError("The microphone stopped unexpectedly. You can type instead.");
+            setError(`The microphone stopped unexpectedly (${e.error}). You can type instead.`);
           }
           setListening(false);
           setTarget(null);
@@ -157,9 +172,9 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
           setListening(false);
           setTarget(null);
           setInterim("");
-          const finalText = finalRef.current.trim();
+          const finalText = finalsRef.current.join("").replace(/\s+/g, " ").trim();
           if (finalText) handlerRef.current?.(finalText, true);
-          finalRef.current = "";
+          finalsRef.current = [];
         };
 
         recRef.current = rec;
