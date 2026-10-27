@@ -96,6 +96,13 @@ export function Done({
           <Icon name="clock" className="h-4 w-4" />
           Add to calendar
         </Button>
+        <a
+          href="/portal"
+          className="inline-flex min-h-[2.75rem] w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-panel px-5 text-[0.9375rem] font-medium text-slate-600 transition hover:bg-slate-50 sm:w-auto"
+        >
+          <Icon name="video" className="h-4 w-4" />
+          Open my portal
+        </a>
         <Button variant="ghost" onClick={onRestart} className="w-full sm:w-auto">Start over (demo)</Button>
       </div>
 
