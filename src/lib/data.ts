@@ -248,6 +248,32 @@ export function resolveSlot(now: Date, hours: number): Date {
   return d;
 }
 
+/**
+ * Resolve a provider's whole slot list together.
+ *
+ * Resolving each offset on its own collapses any that fall outside clinic
+ * hours onto the same opening — two identical times on one card, sometimes
+ * out of order. Offering the same appointment twice is confusing for anyone
+ * and worse for someone already struggling to choose, so slots are rolled
+ * forward to stay unique and strictly increasing.
+ */
+export function resolveSlots(now: Date, hours: number[]): Date[] {
+  const out: Date[] = [];
+  for (const h of [...hours].sort((a, b) => a - b)) {
+    const d = resolveSlot(now, h);
+    const prev = out[out.length - 1];
+    while (prev && d.getTime() <= prev.getTime()) {
+      d.setMinutes(d.getMinutes() + 20);
+      if (d.getHours() >= 20) {
+        d.setDate(d.getDate() + 1);
+        d.setHours(8, 20, 0, 0);
+      }
+    }
+    out.push(d);
+  }
+  return out;
+}
+
 export function slotId(providerId: string, hours: number): string {
   return `${providerId}:${hours}`;
 }
@@ -324,22 +350,6 @@ export const TESTIMONIALS: Testimonial[] = [
   },
   {
     quote:
-      "Booked on a Sunday night, seen on Wednesday. I'd been on a four-month waitlist somewhere else.",
-    name: "Devin R.",
-    city: "Fort Worth",
-    when: "September 2026",
-    tint: "mint",
-  },
-  {
-    quote:
-      "It told me my copay was $30 before I booked. That sounds small but it's the reason I went through with it.",
-    name: "Priya S.",
-    city: "Plano",
-    when: "October 2026",
-    tint: "sky",
-  },
-  {
-    quote:
       "Filling out forms is the thing I put off for months. I talked into my phone instead and it was done in ten minutes.",
     name: "Jordan M.",
     city: "Houston",
@@ -348,19 +358,36 @@ export const TESTIMONIALS: Testimonial[] = [
   },
   {
     quote:
+      "He never pushed medication on the first visit. He asked what I'd already tried and why I stopped.",
+    name: "Thomas A.",
+    city: "San Antonio",
+    when: "October 2026",
+    tint: "mint",
+  },
+  /* Written for the demo and kept for rotation; the page shows the first three. */
+  {
+    quote:
+      "Booked on a Sunday night, seen on Wednesday. I'd been on a four-month waitlist somewhere else.",
+    name: "Devin R.",
+    city: "Fort Worth",
+    when: "September 2026",
+    tint: "sky",
+  },
+  {
+    quote:
+      "It told me my copay was $30 before I booked. That sounds small but it's the reason I went through with it.",
+    name: "Priya S.",
+    city: "Plano",
+    when: "October 2026",
+    tint: "sand",
+  },
+  {
+    quote:
       "Hablamos en español desde la primera cita. No tuve que explicarle nada dos veces.",
     name: "Carmen V.",
     city: "El Paso",
     when: "September 2026",
     tint: "blush",
-  },
-  {
-    quote:
-      "He never pushed medication on the first visit. He asked what I'd already tried and why I stopped.",
-    name: "Thomas A.",
-    city: "San Antonio",
-    when: "October 2026",
-    tint: "sand",
   },
 ];
 

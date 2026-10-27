@@ -39,7 +39,9 @@ export function rankProviders(intake: Intake): Ranked[] {
 
     if (inNetwork && carrier && carrier !== "other") {
       score += 40;
-      reasons.push(`In-network with ${CARRIERS.find((c) => c.id === carrier)!.short}`);
+      /* True of everyone shown, so it earns a place only when nothing more
+         specific has been said about this provider yet. */
+      if (!reasons.length) reasons.push(`In-network with ${CARRIERS.find((c) => c.id === carrier)!.short}`);
     } else if (!inNetwork) {
       score -= 100;
     }

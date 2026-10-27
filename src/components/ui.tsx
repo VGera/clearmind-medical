@@ -152,9 +152,9 @@ export function Chip({
     >
       <span
         aria-hidden="true"
-        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
-          selected ? "border-slate-500 bg-slate-500 text-white" : "border-line"
-        }`}
+        className={`flex h-[1.125rem] w-[1.125rem] shrink-0 items-center justify-center border ${
+          single ? "rounded-full" : "rounded-[0.3rem]"
+        } ${selected ? "border-slate-500 bg-slate-500 text-white" : "border-slate-300"}`}
       >
         {selected && (
           <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">

@@ -2,7 +2,6 @@
 
 import React from "react";
 import { CARRIERS, CONDITIONS, PRACTICE, RATING, TESTIMONIALS, type Tint } from "@/lib/data";
-import { useVoice } from "@/lib/voice";
 import { Button, Card, Icon } from "../ui";
 
 const TINTS: Record<Tint, string> = {
@@ -27,7 +26,6 @@ function Stars({ score }: { score: number }) {
 }
 
 export function Landing({ onStart }: { onStart: (mode: "form" | "chat") => void }) {
-  const { sttSupported, micBlocked } = useVoice();
   return (
     <div className="rise">
       {/* A warm panel rather than a flat page. Calm, but not colourless. */}
@@ -72,33 +70,7 @@ export function Landing({ onStart }: { onStart: (mode: "form" | "chat") => void 
         </Button>
       </div>
 
-      <Card className="mt-8 border-tint-skyInk/15 bg-tint-sky p-5">
-        <div className="flex items-start gap-3.5">
-          <span className="mt-0.5 shrink-0 text-tint-skyInk"><Icon name="mic" className="h-5 w-5" /></span>
-          <p className="text-[0.95rem] leading-relaxed text-tint-skyInk">
-            {sttSupported ? (
-              <>
-                When you get to the part where you describe what&rsquo;s going on, you can{" "}
-                <strong className="font-semibold text-ink">tap the microphone and just talk</strong> instead of
-                typing. Same in the chat.
-              </>
-            ) : micBlocked === "insecure" ? (
-              <>
-                Voice typing is off on this address — it needs a secure{" "}
-                <strong className="font-semibold text-ink">https</strong> connection. Everything else works the
-                same, and nothing here needs more than short answers.
-              </>
-            ) : (
-              <>
-                Everything here can be answered with short taps. The one longer question is optional — a sentence
-                is plenty.
-              </>
-            )}
-          </p>
-        </div>
-      </Card>
-
-      <Card className="mt-3 border-tint-sandInk/15 bg-tint-sand p-5">
+      <Card className="mt-8 border-tint-sandInk/15 bg-tint-sand p-5">
         <div className="flex items-start gap-3.5">
           <span className="mt-0.5 shrink-0 text-tint-sandInk"><Icon name="info" className="h-5 w-5" /></span>
           <div className="min-w-0">
@@ -113,7 +85,7 @@ export function Landing({ onStart }: { onStart: (mode: "form" | "chat") => void 
         </div>
       </Card>
 
-      <h2 className="mb-3 mt-9 text-[1.05rem] font-medium text-ink">What we treat</h2>
+      <h2 className="mb-3 mt-9 text-[1.05rem] font-medium text-ink">What people come to us for</h2>
       <div className="flex flex-wrap gap-2">
         {CONDITIONS.filter((c) => c.id !== "other").map((c) => (
           <span key={c.id} className={`rounded-full border px-3.5 py-2 text-sm font-medium ${TINTS[c.tint]}`}>
@@ -128,14 +100,24 @@ export function Landing({ onStart }: { onStart: (mode: "form" | "chat") => void 
         A short form with your address and history arrives by email after you book.
       </p>
 
+      <Card className="mt-9 border-tint-lilacInk/15 bg-tint-lilac p-5 sm:p-6">
+        <h2 className="font-serif text-[1.2rem] text-ink">How we think about this</h2>
+        <p className="mt-2.5 text-[0.95rem] leading-relaxed text-tint-lilacInk">
+          Brains work differently — that isn&rsquo;t the thing we&rsquo;re treating. We&rsquo;re here for the parts
+          making life harder than it needs to be: the sleep, the focus, the dread, whatever it is for you. You
+          decide what you&rsquo;d like to change, and we won&rsquo;t try to fix anything you haven&rsquo;t asked us
+          to.
+        </p>
+      </Card>
+
       <section className="mt-11" aria-labelledby="voices">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 id="voices" className="font-serif text-[1.3rem] text-ink">What patients say</h2>
           <p className="text-sm text-muted">{RATING.count} reviews</p>
         </div>
 
-        <ul className="grid gap-3 sm:grid-cols-2">
-          {TESTIMONIALS.map((t) => (
+        <ul className="grid gap-3 sm:grid-cols-3">
+          {TESTIMONIALS.slice(0, 3).map((t) => (
             <li key={t.name}>
               <figure className={`h-full rounded-xl2 border p-5 ${TINTS[t.tint]}`}>
                 <blockquote className="text-[0.95rem] leading-relaxed">

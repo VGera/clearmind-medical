@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { CARRIERS, CONDITIONS, PRACTICE, QUESTIONS, resolveSlot, slotId } from "@/lib/data";
+import { CARRIERS, CONDITIONS, PRACTICE, QUESTIONS, resolveSlots, slotId } from "@/lib/data";
 import { headline, rankProviders, type Ranked } from "@/lib/match";
 import type { Intake } from "@/lib/types";
 import { Avatar, Badge, Button, Card, Icon, StepHeading } from "../ui";
 
-function dayLabel(d: Date, now: Date): string {
+/* Exported so the portal's reschedule screen renders slot pills identically. */
+export function dayLabel(d: Date, now: Date): string {
   const a = new Date(d); a.setHours(0, 0, 0, 0);
   const b = new Date(now); b.setHours(0, 0, 0, 0);
   const days = Math.round((a.getTime() - b.getTime()) / 86_400_000);
@@ -15,7 +16,7 @@ function dayLabel(d: Date, now: Date): string {
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
-function timeLabel(d: Date): string {
+export function timeLabel(d: Date): string {
   return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
@@ -40,11 +41,13 @@ function ProviderCard({
   badge?: string;
   tone?: "slate" | "sage";
   selectedSlot: string | null;
-  onPick: (id: string, slot: string) => void;
+  onPick: (id: string, slot: string, when: Date) => void;
 }) {
   const [all, setAll] = useState(false);
   const p = r.provider;
-  const hours = all ? p.slotHours : p.slotHours.slice(0, 3);
+  const sorted = [...p.slotHours].sort((a, b) => a - b);
+  const times = resolveSlots(now, sorted);
+  const shown = all ? sorted.length : Math.min(3, sorted.length);
   const who = titleFor(p.credential, p.name);
   const otherLangs = p.languages.filter((l) => l !== "English");
 
@@ -106,15 +109,15 @@ function ProviderCard({
 
       <div className="mt-5 border-t border-line pt-4">
         <div className="flex flex-wrap gap-2" role="group" aria-label={`Open times with ${who}`}>
-          {hours.map((h) => {
-            const d = resolveSlot(now, h);
+          {sorted.slice(0, shown).map((h, i) => {
+            const d = times[i];
             const id = slotId(p.id, h);
             const picked = selectedSlot === id;
             return (
               <button
                 key={id}
                 type="button"
-                onClick={() => onPick(p.id, id)}
+                onClick={() => onPick(p.id, id, d)}
                 aria-pressed={picked}
                 aria-label={`${fullSlotLabel(d, now)} with ${who}`}
                 className={`min-h-[3rem] whitespace-nowrap rounded-full border px-4 text-[0.95rem] transition ${
@@ -127,7 +130,7 @@ function ProviderCard({
               </button>
             );
           })}
-          {!all && p.slotHours.length > 3 && (
+          {!all && sorted.length > 3 && (
             <button
               type="button"
               onClick={() => setAll(true)}
@@ -198,10 +201,11 @@ export function Match({
 
   /* Only call the second card "soonest" when it actually is. Otherwise the two
      badges tell the patient the opposite of what the times say. */
-  const secondIsSooner = Boolean(soonest && soonest.nextHours < recommended.nextHours);
+  const firstTimeOf = (r: Ranked) => resolveSlots(now, [...r.provider.slotHours].sort((a, b) => a - b))[0];
+  const secondIsSooner = Boolean(soonest && firstTimeOf(soonest) < firstTimeOf(recommended));
   const secondBadge = soonest
     ? secondIsSooner
-      ? `Soonest — ${fullSlotLabel(resolveSlot(now, soonest.nextHours), now).toLowerCase()}`
+      ? `Soonest — ${fullSlotLabel(firstTimeOf(soonest), now).toLowerCase()}`
       : "Also a strong fit"
     : "";
 
@@ -215,9 +219,8 @@ export function Match({
     : CARRIERS.find((c) => c.id === intake.carrier)?.short ?? "Your plan";
 
 
-  const pick = (providerId: string, slot: string) => {
-    const hours = Number(slot.split(":")[1]);
-    patch({ providerId, slotId: slot, slotISO: resolveSlot(now, hours).toISOString() });
+  const pick = (providerId: string, slot: string, when: Date) => {
+    patch({ providerId, slotId: slot, slotISO: when.toISOString() });
   };
 
   const heldProvider = ranked.find((r) => r.provider.id === intake.providerId)?.provider;
