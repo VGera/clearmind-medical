@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { PRACTICE, PROVIDERS, resolveSlots, slotId } from "@/lib/data";
+import { CARRIERS, PRACTICE, PROVIDERS, resolveSlots, slotId } from "@/lib/data";
 import { headline, rankProviders, type Ranked } from "@/lib/match";
 import { PATIENT_INTAKE, type Visit, visitDate, when } from "@/lib/portal/mock";
 import { emptyIntake } from "@/lib/types";
@@ -43,12 +43,15 @@ function SwitchCard({
   now,
   badge,
   tone,
+  carrierName,
   onPick,
 }: {
   r: Ranked;
   now: Date;
   badge?: string;
   tone?: "slate" | "sage";
+  /** The patient's plan, so an out-of-network provider can say so. */
+  carrierName: string;
   onPick: (c: Choice) => void;
 }) {
   const [all, setAll] = useState(false);
@@ -141,6 +144,17 @@ function SwitchCard({
             </button>
           )}
         </div>
+
+        {/* The booking funnel says this under every out-of-network card. This
+            screen did not, so a provider who wouldn't bill the patient's plan
+            was offered — and sold with "can pick up your prescriptions this
+            week" — with no mention of cost anywhere through to confirmation. */}
+        {!r.inNetwork && (
+          <p className="mt-3 text-xs leading-relaxed text-muted">
+            Not in-network with {carrierName} — you&rsquo;d pay the direct rate ($
+            {PRACTICE.selfPay.followUp} a follow-up) to see {p.name.split(" ")[0]}.
+          </p>
+        )}
       </div>
     </Card>
   );
@@ -169,6 +183,8 @@ export function Reschedule({
   const provider = PROVIDERS.find((p) => p.id === visit.providerId);
   const who = provider ? titleFor(provider.credential, provider.name) : visit.providerName;
   const firstName = (provider?.name ?? visit.providerName.replace(/^Dr\.\s*/, "")).split(" ")[0];
+  const carrierName =
+    CARRIERS.find((c) => c.id === PATIENT_INTAKE.carrier)?.short ?? "your plan";
 
   const current = visitDate(now, visit.hours);
 
@@ -274,10 +290,20 @@ export function Reschedule({
         All visits
       </button>
 
-      <h1 className="font-serif text-[1.5rem] leading-tight text-ink sm:text-[1.8rem]">Move your visit</h1>
+      <h1 className="font-serif text-[1.5rem] leading-tight text-ink sm:text-[1.8rem]">
+        {stage === "providers" ? "Choose someone else" : "Move your visit"}
+      </h1>
       <p className="mt-2 text-[0.95rem] leading-relaxed text-muted">
-        Same provider, same {visit.minutes}-minute visit — just a different time. Nothing changes until you
-        confirm.
+        {stage === "providers" ? (
+          <>
+            Same {visit.minutes}-minute visit, a different clinician. Nothing changes until you confirm.
+          </>
+        ) : (
+          <>
+            Same provider, same {visit.minutes}-minute visit — just a different time. Nothing changes until you
+            confirm.
+          </>
+        )}
       </p>
 
       <Card className="mt-5 p-5">
@@ -301,13 +327,14 @@ export function Reschedule({
           </p>
 
           <div className="mt-4 space-y-3">
-            <SwitchCard r={alts.recommended} now={now} badge="Recommended for you" onPick={choose} />
+            <SwitchCard r={alts.recommended} now={now} badge="Recommended for you" carrierName={carrierName} onPick={choose} />
             {alts.soonest && (
               <SwitchCard
                 r={alts.soonest}
                 now={now}
                 badge={secondBadge}
                 tone={secondIsSooner ? "sage" : "slate"}
+                carrierName={carrierName}
                 onPick={choose}
               />
             )}
@@ -323,7 +350,7 @@ export function Reschedule({
               ) : (
                 <div className="rise space-y-3">
                   {alts.rest.map((r) => (
-                    <SwitchCard key={r.provider.id} r={r} now={now} onPick={choose} />
+                    <SwitchCard key={r.provider.id} r={r} now={now} carrierName={carrierName} onPick={choose} />
                   ))}
                 </div>
               )}

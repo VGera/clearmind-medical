@@ -58,6 +58,20 @@ export const VISITS: Visit[] = [
     status: "upcoming",
   },
   {
+    /* Starts now, so the join window is actually open. Without one of these
+       the video visit — the thing the practice sells — could not be reached in
+       the prototype at all. Note `0` rather than a small offset: resolveSlot
+       rounds to the nearest 20 minutes, which can push a "+8 minutes" visit to
+       17 minutes out and close the 15-minute window again. */
+    id: "v4",
+    providerId: "raman",
+    providerName: "Priya Raman",
+    hours: 0,
+    minutes: 25,
+    kind: "Medication check-in",
+    status: "upcoming",
+  },
+  {
     id: "v2",
     providerId: "okafor",
     providerName: "Dr. Amara Okafor",

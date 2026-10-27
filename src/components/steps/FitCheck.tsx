@@ -28,7 +28,18 @@ function Question({
   );
 }
 
-function Blocked({ title, body, onGo }: { title: string; body: string; onGo: () => void }) {
+function Blocked({
+  title,
+  body,
+  onGo,
+  onSelfPay,
+}: {
+  title: string;
+  body: string;
+  onGo: () => void;
+  /** Only for payer blocks: we can still see these patients. */
+  onSelfPay?: () => void;
+}) {
   return (
     <Card className="rise mt-5 border-slate-200 bg-slate-50 p-5" role="status">
       <div className="flex items-start gap-3">
@@ -36,10 +47,25 @@ function Blocked({ title, body, onGo }: { title: string; body: string; onGo: () 
         <div className="min-w-0">
           <h3 className="font-medium text-ink">{title}</h3>
           <p className="mt-1.5 text-[0.95rem] leading-relaxed text-muted">{body}</p>
-          <Button className="mt-4 w-full sm:w-auto" onClick={onGo}>
-            Where to go instead
-            <Icon name="arrow" className="h-4 w-4" />
-          </Button>
+          {/* The body used to promise "you can still see us by paying
+              directly" and offer only a button reading "Where to go instead".
+              The way in was behind the way out. */}
+          <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
+            {onSelfPay && (
+              <Button className="w-full sm:w-auto" onClick={onSelfPay}>
+                Keep going, paying directly
+                <span className="font-normal opacity-80">${PRACTICE.selfPay.intake} first visit</span>
+              </Button>
+            )}
+            <Button
+              variant={onSelfPay ? "secondary" : "primary"}
+              className="w-full sm:w-auto"
+              onClick={onGo}
+            >
+              {onSelfPay ? "See covered options" : "Where to go instead"}
+              <Icon name="arrow" className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     </Card>
@@ -51,11 +77,13 @@ export function FitCheck({
   patch,
   onContinue,
   onElsewhere,
+  onSelfPay,
 }: {
   intake: Intake;
   patch: (p: Partial<Intake>) => void;
   onContinue: () => void;
   onElsewhere: () => void;
+  onSelfPay: () => void;
 }) {
   const stateBlocked = Boolean(intake.state) && intake.state !== "TX";
   const minorBlocked = intake.adult === false;
@@ -194,9 +222,14 @@ export function FitCheck({
                 to live here too — not only on the manual path. */}
             {payerBlocked && intake.insuranceSource === "autofill" && (
               <Blocked
-                title={`We can't bill ${intake.otherPayer === "medicare" ? "Medicare" : "Medicaid"}`}
-                body={`We found your ${intake.discovery?.payer.name ?? "plan"}, and we're not enrolled with that program — claims wouldn't go through. There are good covered options, and you can still see us by paying directly.`}
+                title={`We're not a ${intake.otherPayer === "medicare" ? "Medicare" : "Medicaid"} provider`}
+                /* "we're not enrolled with that program" put the word the
+                   patient owns — they enrolled in Medicare — on us, and read as
+                   "you did something wrong". "Claims wouldn't go through" is
+                   billing jargon for a question they asked in plain English. */
+                body={`We found your ${intake.discovery?.payer.name ?? "plan"}. ${intake.otherPayer === "medicare" ? "Medicare" : "Medicaid"} won't pay for a visit with us, so you'd have two choices: see us and pay directly, or find a psychiatrist who takes your plan. We'll help with either.`}
                 onGo={onElsewhere}
+                onSelfPay={onSelfPay}
               />
             )}
           </Question>
@@ -217,9 +250,10 @@ export function FitCheck({
             </div>
             {payerBlocked && (
               <Blocked
-                title={`We can't bill ${intake.otherPayer === "medicare" ? "Medicare" : "Medicaid"}`}
-                body="There are good covered options — and if you'd rather, you can still see us by paying directly."
+                title={`We're not a ${intake.otherPayer === "medicare" ? "Medicare" : "Medicaid"} provider`}
+                body={`${intake.otherPayer === "medicare" ? "Medicare" : "Medicaid"} won't pay for a visit with us. You can still see us and pay directly, or we'll help you find someone who takes your plan.`}
                 onGo={onElsewhere}
+                onSelfPay={onSelfPay}
               />
             )}
           </Question>

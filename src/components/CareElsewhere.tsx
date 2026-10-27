@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { NATIONAL_RESOURCES, OTHER_STATE, PRACTICE, stateName, type Resource } from "@/lib/data";
+import { CRISIS_RESOURCE, NATIONAL_RESOURCES, OTHER_STATE, PRACTICE, localise, stateName, type Resource } from "@/lib/data";
 import { blockerIsPayerOnly, type Blocker, type Intake } from "@/lib/types";
 import { Button, Card, Icon, inputClass } from "./ui";
 
@@ -112,9 +112,27 @@ export function CareElsewhere({
       <h2 className="mb-3.5 mt-9 font-serif text-[1.2rem] text-ink">Where to go next</h2>
       <div className="grid gap-3 sm:grid-cols-2">
         {NATIONAL_RESOURCES.map((r) => (
-          <ResourceCard key={r.name} r={r} />
+          /* Aimed at their state where we know it. */
+          <ResourceCard key={r.name} r={localise(r, intake.state || null)} />
         ))}
       </div>
+
+      {/* 988 kept present and reachable, but not presented as the answer to
+          "I'd like to see a psychiatrist". It's also in the header strip on
+          every screen. */}
+      <Card className="mt-3 border-slate-200 bg-slate-50 p-5">
+        <h3 className="font-serif text-[1.0625rem] text-ink">If things feel unsafe right now</h3>
+        <p className="mt-1.5 text-[0.95rem] leading-relaxed text-muted">
+          {CRISIS_RESOURCE.what}{" "}
+          <a
+            href={CRISIS_RESOURCE.href}
+            className="font-medium text-slate-600 underline decoration-current underline-offset-2"
+          >
+            {CRISIS_RESOURCE.action}
+          </a>
+          . {CRISIS_RESOURCE.detail}
+        </p>
+      </Card>
 
       {blocker === "minor" && (
         <Card className="mt-3 p-5">
@@ -161,7 +179,8 @@ export function CareElsewhere({
       )}
 
       <p className="mt-9 text-sm leading-relaxed text-muted">
-        We don&rsquo;t keep anything you entered unless you ask us to.
+        Your answers stay on this device and are gone when you close the tab. Nothing is sent to us
+        unless you book.
       </p>
     </div>
   );

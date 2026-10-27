@@ -17,8 +17,18 @@ const TONE: Record<string, "sage" | "slate" | "clay" | "neutral"> = {
  * would, which is the message thread, and the screen says what's actually
  * required instead of taking a request it can't honour.
  */
-function Row({ rx, onAsk }: { rx: Prescription; onAsk: (rx: Prescription) => void }) {
+function Row({
+  rx,
+  nextVisit,
+  onAsk,
+}: {
+  rx: Prescription;
+  /** Already booked, if there is one — so a renewal can point at it. */
+  nextVisit?: string;
+  onAsk: (rx: Prescription) => void;
+}) {
   const label = RX_LABEL[rx.status];
+  const out = rx.refillsLeft === 0;
   return (
     <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -44,15 +54,30 @@ function Row({ rx, onAsk }: { rx: Prescription; onAsk: (rx: Prescription) => voi
         )}
         <div className="flex justify-between gap-4">
           <dt className="text-muted">Refills left</dt>
-          <dd className="text-ink">{rx.refillsLeft}</dd>
+          {/* "0" on its own left the patient to do the arithmetic about
+              whether they were about to run out. */}
+          <dd className={out ? "font-medium text-ink" : "text-ink"}>
+            {rx.refillsLeft}
+            {out && <span className="font-normal text-muted"> — none left at the pharmacy</span>}
+          </dd>
         </div>
       </dl>
 
       {rx.status === "needs_visit" && (
         <p className="mt-3.5 rounded-xl bg-tint-sand px-3.5 py-3 text-[0.95rem] leading-relaxed text-tint-sandInk">
           {rx.controlled
-            ? "This one is a controlled medication, so it can't be renewed by message — it needs a short visit. Your provider can usually fit that in quickly."
-            : "This needs a visit before it can be renewed."}
+            ? "This one is a controlled medication, so it can't be renewed by message — it needs a short visit."
+            : "This needs a visit before it can be renewed."}{" "}
+          {/* The screen used to say "your provider can usually fit that in
+              quickly" to someone who already had a visit booked for tomorrow,
+              and never connected the two. */}
+          {nextVisit ? (
+            <strong className="font-medium text-tint-sandInk">
+              Your visit on {nextVisit} can cover this — no need to book anything else.
+            </strong>
+          ) : (
+            "Your provider can usually fit that in quickly."
+          )}
         </p>
       )}
 
@@ -64,7 +89,7 @@ function Row({ rx, onAsk }: { rx: Prescription; onAsk: (rx: Prescription) => voi
   );
 }
 
-export function Prescriptions({ onAsk }: { onAsk: (rx: Prescription) => void }) {
+export function Prescriptions({ nextVisit, onAsk }: { nextVisit?: string; onAsk: (rx: Prescription) => void }) {
   return (
     <div>
       <h2 className="mb-1.5 font-serif text-[1.25rem] text-ink">Your medications</h2>
@@ -74,7 +99,7 @@ export function Prescriptions({ onAsk }: { onAsk: (rx: Prescription) => void }) 
       </p>
       <div className="space-y-3">
         {PRESCRIPTIONS.map((rx) => (
-          <Row key={rx.id} rx={rx} onAsk={onAsk} />
+          <Row key={rx.id} rx={rx} nextVisit={nextVisit} onAsk={onAsk} />
         ))}
       </div>
     </div>

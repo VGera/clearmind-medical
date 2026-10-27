@@ -108,6 +108,8 @@ function Portal() {
                   v.id === moving.id
                     ? {
                         ...v,
+                        /* Rebooking a cancelled visit brings it back. */
+                        status: "upcoming" as const,
                         hours,
                         providerId,
                         providerName: (() => {
@@ -161,6 +163,7 @@ function Portal() {
 
         {tab === "meds" && (
           <Prescriptions
+            nextVisit={next ? when(visitDate(now, next.hours), now) : undefined}
             onAsk={(rx: Prescription) =>
               ask(
                 rx.status === "needs_visit"

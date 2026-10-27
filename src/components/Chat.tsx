@@ -69,7 +69,12 @@ function promptFor(slot: Slot): Turn {
         ],
         chips: [
           { label: "Look it up for me", value: LOOKUP },
-          ...CARRIERS.map((c) => ({ label: c.short, value: c.label })),
+          ...CARRIERS.filter((c) => c.id !== "other").map((c) => ({ label: c.short, value: c.label })),
+          /* Answering "no" to "do you have insurance?" used to require going
+             through "Who's it through?" first — a question that assumes you
+             have some. */
+          { label: "No insurance", value: "no insurance" },
+          { label: "Other", value: "other" },
         ],
       };
     case "otherPayer":
@@ -119,8 +124,13 @@ function reflect(slot: Slot, i: Intake): string[] {
       const joined = labels.length > 1 ? `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}` : labels[0];
       return [`${joined.charAt(0).toUpperCase()}${joined.slice(1)} — that's what we do. Thank you for telling me.`];
     }
-    case "symptoms":
+    case "symptoms": {
+      /* Tapping "Nothing else" stored a placeholder, and we thanked them for
+         sharing it. Nothing is the right answer to an optional question. */
+      const said = i.symptoms.trim();
+      if (!said || said === "(nothing else to add)") return [];
       return ["Thank you. Your doctor will read that before you meet, so you won't have to start over."];
+    }
     default:
       return [];
   }
@@ -176,6 +186,8 @@ export function Chat({
   const [finished, setFinished] = useState(false);
   /** Held while a crisis disclosure is on screen, so intake doesn't barrel on. */
   const [paused, setPaused] = useState<Turn | null>(null);
+  /** Still blocked by the current answers, as opposed to historically blocked. */
+  const blockedNow = blockerFor(intake) !== null;
   const [lookup, setLookup] = useState<Lookup>(null);
   const idRef = useRef(0);
   const scroller = useRef<HTMLDivElement>(null);
@@ -236,6 +248,19 @@ export function Chat({
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
+
+  /* The chat now outlives a block and a completed intake, so both flags need
+     clearing when the reason for them is gone. Previously the component was
+     unmounted, which did this by accident; keeping it mounted would otherwise
+     leave a blocked chat permanently dead and a finished one with no composer. */
+  useEffect(() => {
+    if (blocked && !blockedNow) { setBlocked(false); afterBlock.current = 0; }
+  }, [blocked, blockedNow]);
+
+  useEffect(() => {
+    /* Came back to edit an answer: let them talk again. */
+    if (finished && active && nextSlot(intake) !== "ready") setFinished(false);
+  }, [finished, active, intake]);
 
   /* If every answer is already in — because the form filled them, or the
      patient came back to this screen — don't sit on "let me find who fits".
@@ -326,7 +351,23 @@ export function Chat({
       if (lookup.phase === "name") {
         const n = parseName(text);
         if (!n) {
-          say(["I need a first and last name to search — what's your full name?"]);
+          const seen = misses.current.lookupName ?? 0;
+          misses.current.lookupName = seen + 1;
+          if (seen >= 1) {
+            /* Two tries is enough. Don't strand them in a sub-flow with the
+               chips hidden — hand the question back with the carriers. */
+            setLookup(null);
+            say(
+              ["Let's not fuss with the search. Who's your insurance with?"],
+              promptFor("carrier").chips?.filter((c) => c.value !== LOOKUP),
+            );
+            return true;
+          }
+          say([
+            seen === 0
+              ? "I need a first and last name to search — what's your full name? Or say \u201cnever mind\u201d and just name your insurer."
+              : "Still not getting it — what's your full name?",
+          ]);
           return true;
         }
         setLookup({ phase: "dob", first: n.first, last: n.last });
@@ -337,7 +378,19 @@ export function Chat({
       if (lookup.phase === "dob") {
         const dob = parseBirthDate(text);
         if (!dob) {
-          say(["I couldn't read that as a date. Could you write it like 05/05/1990?"]);
+          const seen = misses.current.lookupDob ?? 0;
+          misses.current.lookupDob = seen + 1;
+          if (seen >= 1) {
+            setLookup(null);
+            say(
+              ["No problem — we can skip the search. Who's your insurance with?"],
+              promptFor("carrier").chips?.filter((c) => c.value !== LOOKUP),
+            );
+            return true;
+          }
+          say([
+            "I couldn't read that as a date. Could you write it like 05/05/1990? Or say \u201cnever mind\u201d to name your insurer instead.",
+          ]);
           return true;
         }
         const who = { first: lookup.first, last: lookup.last, birthDate: dob };
@@ -389,13 +442,16 @@ export function Chat({
   );
 
   const handle = useCallback(
-    (raw: string) => {
+    /* `shown` is what the patient sees in their own bubble. A chip whose value
+       differs from its label — "Nothing else" sending "skip" — used to put the
+       machine's word in the patient's mouth. */
+    (raw: string, shown?: string) => {
       const text = raw.trim();
       if (!text || finished) return;
       /* Typing during a crisis pause means they're ready to continue. */
       const pending = paused;
       if (pending) setPaused(null);
-      setMsgs((m) => [...m, { id: ++idRef.current, who: "user", text }]);
+      setMsgs((m) => [...m, { id: ++idRef.current, who: "user", text: (shown ?? text).trim() }]);
       setDraft("");
       if (composer.current) composer.current.style.height = "auto";
 
@@ -435,10 +491,11 @@ export function Chat({
         if (st) {
           next.state = st;
           filled.push("state");
-        } else if (asking === "state") {
-          /* Whatever they typed, they answered. If we can't name the state we
-             take it as "not Texas" rather than asking again — re-asking until
-             someone taps Texas is coercive, not careful. */
+        } else if (asking === "state" && (misses.current.state ?? 0) >= 1) {
+          /* Second miss: take it as "not Texas" and route to resources rather
+             than asking a third time. Recoverable — that page offers "Change
+             my answer". Taking it on the FIRST miss, as this used to, told a
+             Texan who typed "Austin" that we weren't in their state. */
           next.state = OTHER_STATE;
           filled.push("state");
         }
@@ -708,7 +765,7 @@ export function Chat({
             {showChips.map((c) => (
               <button
                 key={c.label}
-                onClick={() => handle(c.value)}
+                onClick={() => handle(c.value, c.label)}
                 className="min-h-[2.75rem] rounded-full border border-line bg-panel px-4 text-[0.95rem] text-ink transition hover:border-slate-300 hover:bg-slate-50"
               >
                 {c.label}

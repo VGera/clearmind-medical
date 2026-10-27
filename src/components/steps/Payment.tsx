@@ -48,6 +48,10 @@ export function Payment({
   const elig = intake.eligibility;
   const cost = patientCost(elig);
   const isSelfPay = intake.selfPay || intake.otherPayer === "selfpay";
+  /* `cost.text` is sometimes a phrase, not a figure — "Out of network",
+     "Coverage not active". Those branches tell the patient they could pay
+     directly instead, so this screen has to actually offer it. */
+  const isAmount = /\$\s*\d/.test(cost.text);
   const needsMember = !isSelfPay && !deferMember;
 
   const digits = card.number.replace(/\D/g, "");
@@ -137,13 +141,46 @@ export function Payment({
         </dl>
         {cost.detail && <p className="mt-3.5 text-sm leading-relaxed text-muted">{cost.detail}</p>}
         <p className="mt-3.5 text-sm leading-relaxed text-muted">
-          {cost.confident
+          {/* "came back from your insurer, not an estimate" was printed under
+              "Out of network" and "Coverage not active" — neither of which is
+              a figure, so the reassurance read as nonsense. */}
+          {cost.confident && isAmount
             ? "That figure came back from your insurer, not an estimate."
-            : "We'll email the exact amount before your visit."}{" "}
-          Cancel or reschedule any time up to 24 hours ahead and there&rsquo;s no charge; inside 24 hours it&rsquo;s
-          ${PRACTICE.selfPay.followUp}.
+            : cost.confident
+              ? "That came back from your insurer, not a guess."
+              : "We'll email the exact amount before your visit."}
         </p>
+
+        {/* This used to be the quietest sentence on the screen, in muted body
+            text lighter than the copay above it, revealed at step 5 of 5. For
+            a patient whose illness is why they can't get out of bed, the
+            number that prices exactly that symptom should not be a footnote. */}
+        <div className="mt-4 rounded-xl2 border border-line bg-paper px-4 py-3.5">
+          <p className="text-[0.95rem] leading-relaxed text-ink">
+            <strong className="font-medium">Changing your mind is free</strong> up to 24 hours before. Inside 24
+            hours a cancellation is ${PRACTICE.selfPay.followUp} — but{" "}
+            <strong className="font-medium">moving the visit is always free</strong>, however late, and you can do
+            it from your account.
+          </p>
+        </div>
       </Card>
+
+      {!isSelfPay && !isAmount && (
+        <Card className="mt-3.5 border-slate-200 bg-slate-50 p-5">
+          <h2 className="font-medium text-ink">You can pay us directly instead</h2>
+          <p className="mt-1.5 text-[0.95rem] leading-relaxed text-muted">
+            ${PRACTICE.selfPay.intake} for the first visit, ${PRACTICE.selfPay.followUp} after — a known number,
+            today, with nothing to claim back. Your plan stays on file either way.
+          </p>
+          <Button
+            variant="secondary"
+            className="mt-4 w-full sm:w-auto"
+            onClick={() => patch({ selfPay: true })}
+          >
+            Switch to paying directly
+          </Button>
+        </Card>
+      )}
 
       {needsMember && intake.insuranceSource === "autofill" && intake.discovery && (
         <Card className="mt-3.5 p-5">

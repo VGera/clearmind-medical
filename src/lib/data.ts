@@ -290,6 +290,35 @@ export interface Resource {
   detail?: string;
 }
 
+/** Psychology Today's directory is state-addressable; so is FindTreatment. */
+const PT_SLUG: Record<string, string> = {};
+
+/**
+ * Point the directories at the patient's own state. "Here's a directory"
+ * becomes "here's your list" for the cost of a URL segment.
+ */
+export function localise(r: Resource, code: string | null): Resource {
+  const st = code && code !== OTHER_STATE ? US_STATES.find((x) => x.code === code) : undefined;
+  if (!st) return r;
+  const slug = PT_SLUG[st.code] ?? st.name.toLowerCase().replace(/\s+/g, "-");
+  if (r.href.startsWith("https://www.psychologytoday.com")) {
+    return {
+      ...r,
+      href: `https://www.psychologytoday.com/us/psychiatrists/${slug}`,
+      what: `Psychiatrists in ${st.name}, filtered by insurance and who's taking new patients.`,
+      action: `Open the ${st.name} directory`,
+    };
+  }
+  if (r.href.startsWith("https://findtreatment.gov")) {
+    return {
+      ...r,
+      href: `https://findtreatment.gov/results?location=${encodeURIComponent(st.name)}`,
+      what: `Government directory, filtered to ${st.name}. Shows what each place accepts.`,
+    };
+  }
+  return r;
+}
+
 export const CRISIS_RESOURCE: Resource = {
   name: "988 Suicide & Crisis Lifeline",
   what: "A trained counselor, any hour, anywhere in the US. Free and confidential.",
@@ -298,13 +327,21 @@ export const CRISIS_RESOURCE: Resource = {
   detail: "Or chat at 988lifeline.org",
 };
 
+/**
+ * Directories first, crisis line separately.
+ *
+ * This list used to lead with 988 for everyone, so a woman asking for help
+ * with panic attacks was handed a suicide hotline as item one and the
+ * directory she actually wanted as item four. 988 is in the header strip on
+ * every screen of this product, so leading with it here bought nothing and
+ * reframed her request as something it wasn't.
+ */
 export const NATIONAL_RESOURCES: Resource[] = [
-  CRISIS_RESOURCE,
   {
-    name: "SAMHSA National Helpline",
-    what: "Free referrals to treatment near you, 24/7, English and Spanish.",
-    action: "Call 1-800-662-4357",
-    href: "tel:18006624357",
+    name: "Psychology Today",
+    what: "Search psychiatrists by state, insurance, and who's taking new patients.",
+    action: "Open the directory",
+    href: "https://www.psychologytoday.com/us/psychiatrists",
   },
   {
     name: "FindTreatment.gov",
@@ -313,10 +350,10 @@ export const NATIONAL_RESOURCES: Resource[] = [
     href: "https://findtreatment.gov",
   },
   {
-    name: "Psychology Today",
-    what: "Search psychiatrists by state, insurance, and who's taking new patients.",
-    action: "Open the directory",
-    href: "https://www.psychologytoday.com/us/psychiatrists",
+    name: "SAMHSA National Helpline",
+    what: "Free referrals to treatment near you, 24/7, English and Spanish.",
+    action: "Call 1-800-662-4357",
+    href: "tel:18006624357",
   },
 ];
 

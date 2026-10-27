@@ -30,12 +30,27 @@ export function Login({ onIn }: { onIn: () => void }) {
     if (phase === "code") codeRef.current?.focus();
   }, [phase]);
 
-  const sendCode = () => {
+  /* Resending produced no announcement at all — the screen was byte-identical
+     afterwards — while silently invalidating the previous code. On a flow built
+     around not having to remember things, that's the wrong failure mode. */
+  const [resent, setResent] = useState(0);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  const sendCode = (again = false) => {
     setBusy(true);
+    setWrong(false);
     setTimeout(() => {
       setExpected(String(Math.floor(100000 + Math.random() * 900000)));
       setBusy(false);
       setPhase("code");
+      setCode("");
+      if (again) { setResent((n) => n + 1); setCooldown(30); }
     }, 600);
   };
 
@@ -75,7 +90,10 @@ export function Login({ onIn }: { onIn: () => void }) {
               value={phone}
               onChange={(v) => setPhone(formatPhone(v.replace(/\D/g, "")))}
             />
-            <Button size="lg" disabled={!phoneOk || busy} onClick={sendCode} className="mt-4 w-full">
+            {!phoneOk && phone.replace(/\D/g, "").length > 0 && (
+              <p className="mt-2 text-sm text-muted">All ten digits, including the area code.</p>
+            )}
+            <Button size="lg" disabled={!phoneOk || busy} onClick={() => sendCode()} className="mt-4 w-full">
               {busy ? "Sending…" : "Text me a code"}
               {!busy && <Icon name="arrow" className="h-5 w-5" />}
             </Button>
@@ -119,13 +137,26 @@ export function Login({ onIn }: { onIn: () => void }) {
             <p className="mt-2.5 text-sm text-muted">It signs you in by itself once all six are in.</p>
             {wrong && (
               <p ref={errRef} role="alert" tabIndex={-1} className="mt-3 text-sm text-alert-500 outline-none">
-                That code doesn&rsquo;t match. Check the last message, or send a new one.
+                That code doesn&rsquo;t match. Check the newest message, or send a new code.
               </p>
             )}
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
               <Button size="lg" onClick={() => check(code)} className="w-full sm:w-auto">Sign in</Button>
-              <Button size="lg" variant="secondary" onClick={sendCode} className="w-full sm:w-auto">Send a new code</Button>
+              <Button
+                size="lg"
+                variant="secondary"
+                disabled={cooldown > 0 || busy}
+                onClick={() => sendCode(true)}
+                className="w-full sm:w-auto"
+              >
+                {cooldown > 0 ? `Send a new code (${cooldown}s)` : "Send a new code"}
+              </Button>
             </div>
+            {resent > 0 && (
+              <p role="status" className="mt-3 text-sm leading-relaxed text-sage-600">
+                A new code is on its way. Use the newest one — the earlier code stopped working.
+              </p>
+            )}
           </Card>
           <div className="mt-5 flex flex-col gap-3 text-sm sm:flex-row sm:gap-6">
             <button onClick={() => setPhase("ask")} className="inline-flex min-h-[2.75rem] items-center gap-2 text-slate-600">

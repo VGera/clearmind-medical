@@ -201,7 +201,7 @@ export function Account({
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="email">Email</Label>
-              <TextField id="email" aria-invalid={bad("email")} type="email" inputMode="email" autoComplete="email" value={a.email} onChange={(v) => set({ email: v })} placeholder="you@example.com" className={err(!emailOk)} />
+              <TextField id="email" aria-invalid={bad("email")} type="email" inputMode="email" autoComplete="email" value={a.email} onChange={(v) => set({ email: v })} placeholder="name@email.com" className={err(!emailOk)} />
             </div>
             <div>
               <Label htmlFor="phone">Mobile</Label>
@@ -226,6 +226,11 @@ export function Account({
                 privacy notice
               </a>.
             </Check>
+          </Card>
+          {/* Lifted out of the box above: when that box outlines red for a
+              missing required consent, an optional checkbox inside it looks
+              flagged too. */}
+          <Card className="mt-2.5 p-5">
             <Check id="c3" checked={a.consentTexts} onChange={(v) => set({ consentTexts: v })}>
               Text me reminders. <span className="text-muted">Optional.</span>
             </Check>

@@ -15,7 +15,10 @@ function minutesUntil(now: Date, v: Visit): number {
 /** Joining is the whole point of the screen, so it gets the primary button. */
 function JoinBlock({ v, now, onJoin }: { v: Visit; now: Date; onJoin: () => void }) {
   const mins = minutesUntil(now, v);
-  const canJoin = mins <= JOIN_WINDOW_MINUTES;
+  /* Also bounded below. The window used to be open-ended in the past, so a
+     visit three hours gone still offered a live Join button. */
+  const missed = mins < -(v.minutes + 15);
+  const canJoin = mins <= JOIN_WINDOW_MINUTES && !missed;
   const [checking, setChecking] = useState(false);
   const [fail, setFail] = useState<MediaFail | null>(null);
   const [found, setFound] = useState<{ cam: string; mic: string } | null>(null);
@@ -43,17 +46,30 @@ function JoinBlock({ v, now, onJoin }: { v: Visit; now: Date; onJoin: () => void
     setChecking(true);
     setFail(null);
     try {
-      const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      let s: MediaStream;
+      try {
+        s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      } catch (err) {
+        /* Asking for both at once means a camera-only block reports as both
+           being blocked. Retry audio alone so we can tell the patient which
+           half actually works. */
+        const name = (err as DOMException)?.name;
+        if (name !== "NotAllowedError" && name !== "NotFoundError") throw err;
+        s = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
       const cam = s.getVideoTracks()[0];
       const mic = s.getAudioTracks()[0];
-      if (!cam || !mic) {
+      if (!mic) {
         s.getTracks().forEach((t) => t.stop());
         setFail("missing");
         return;
       }
       streamRef.current = s;
       /* Report the devices the browser actually handed us, not a reassurance. */
-      setFound({ cam: cam.label || "Your camera", mic: mic.label || "Your microphone" });
+      setFound({
+        cam: cam ? cam.label || "Your camera" : "",
+        mic: mic.label || "Your microphone",
+      });
     } catch (e) {
       setFail(classifyMediaError(e));
     } finally {
@@ -107,7 +123,9 @@ function JoinBlock({ v, now, onJoin }: { v: Visit; now: Date; onJoin: () => void
               <dl className="mt-2.5 space-y-1 text-sm text-muted">
                 <div className="flex gap-1.5">
                   <dt className="font-medium text-ink">Camera:</dt>
-                  <dd className="min-w-0 break-words">{found.cam}</dd>
+                  <dd className="min-w-0 break-words">
+                    {found.cam || "blocked for this site — your microphone still works"}
+                  </dd>
                 </div>
                 <div className="flex gap-1.5">
                   <dt className="font-medium text-ink">Microphone:</dt>
@@ -133,8 +151,24 @@ function JoinBlock({ v, now, onJoin }: { v: Visit; now: Date; onJoin: () => void
   );
 }
 
-function CancelFlow({ v, onCancel, onReschedule }: { v: Visit; onCancel: () => void; onReschedule: () => void }) {
+function CancelFlow({
+  v,
+  now,
+  onCancel,
+  onReschedule,
+}: {
+  v: Visit;
+  now: Date;
+  onCancel: () => void;
+  onReschedule: () => void;
+}) {
   const [open, setOpen] = useState(false);
+  /* This sentence used to be a static string asserting "more than 24 hours
+     away" on every visit, including one five hours out. Saying something
+     untrue about money on the screen whose job is to be non-punitive is worse
+     than saying nothing. */
+  const hoursAway = minutesUntil(now, v) / 60;
+  const lateFee = hoursAway < 24 && hoursAway > 0;
   if (!open) {
     return (
       <button
@@ -149,8 +183,23 @@ function CancelFlow({ v, onCancel, onReschedule }: { v: Visit; onCancel: () => v
     <Card className="rise mt-1 w-full border-slate-200 bg-slate-50 p-4">
       <p className="text-[0.95rem] leading-relaxed text-ink">Cancel this visit?</p>
       <p className="mt-1.5 text-sm leading-relaxed text-muted">
-        No fee — it&rsquo;s more than 24 hours away. If the time is the problem rather than the appointment,
-        moving it keeps your place.
+        {lateFee ? (
+          <>
+            It&rsquo;s less than 24 hours away, so cancelling carries a $
+            {PRACTICE.selfPay.followUp} fee &mdash;{" "}
+            <strong className="font-medium text-ink">moving it instead is free</strong>, and keeps your place.
+          </>
+        ) : hoursAway <= 0 ? (
+          <>
+            This time has already passed. Moving it is free, and your provider would rather you did that than
+            start again.
+          </>
+        ) : (
+          <>
+            No fee &mdash; it&rsquo;s more than 24 hours away. If the time is the problem rather than the
+            appointment, moving it keeps your place.
+          </>
+        )}
       </p>
       <div className="mt-3.5 flex flex-col gap-2 sm:flex-row">
         <Button variant="secondary" className="w-full sm:w-auto" onClick={onReschedule}>
@@ -188,7 +237,15 @@ export function Visits({
   onJoin: (v: Visit) => void;
 }) {
   const upcoming = visits.filter((v) => v.status === "upcoming");
-  const past = visits.filter((v) => v.status !== "upcoming");
+  /* A visit cancelled for next Tuesday is not a past visit. It went under a
+     heading reading "Past visits", which told the patient their care was
+     behind them. */
+  const cancelledAhead = visits.filter(
+    (v) => v.status === "cancelled" && minutesUntil(now, v) > 0,
+  );
+  const past = visits.filter(
+    (v) => v.status !== "upcoming" && !cancelledAhead.includes(v),
+  );
 
   return (
     <div className="space-y-7">
@@ -224,7 +281,7 @@ export function Visits({
                 <Button variant="secondary" className="w-full sm:w-auto" onClick={() => onReschedule(v)}>
                   <Icon name="clock" className="h-4 w-4" /> Reschedule
                 </Button>
-                <CancelFlow v={v} onCancel={() => onCancel(v.id)} onReschedule={() => onReschedule(v)} />
+                <CancelFlow v={v} now={now} onCancel={() => onCancel(v.id)} onReschedule={() => onReschedule(v)} />
                 <button
                   onClick={onMessage}
                   className="inline-flex min-h-[2.75rem] items-center gap-2 px-1 text-sm text-slate-600"
@@ -236,6 +293,32 @@ export function Visits({
           ))
         )}
       </section>
+
+      {cancelledAhead.length > 0 && (
+        <section aria-labelledby="cancelled">
+          <h2 id="cancelled" className="mb-3 font-serif text-[1.25rem] text-ink">Cancelled</h2>
+          <div className="space-y-3">
+            {cancelledAhead.map((v) => (
+              <Card key={v.id} className="p-5">
+                <p className="font-serif text-[1.1rem] leading-snug text-ink">
+                  {when(visitDate(now, v.hours), now)}
+                </p>
+                <p className="mt-1 text-sm text-muted">
+                  {v.kind} &middot; {v.providerName} &middot; cancelled
+                </p>
+                <p className="mt-3 text-[0.95rem] leading-relaxed text-muted">
+                  Nothing is lost &mdash; your chart and your provider stay the same. Pick a new time whenever
+                  you&rsquo;re ready.
+                </p>
+                <Button className="mt-4 w-full sm:w-auto" onClick={() => onReschedule(v)}>
+                  Book a new time
+                  <Icon name="arrow" className="h-4 w-4" />
+                </Button>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section aria-labelledby="past">
         <h2 id="past" className="mb-3 font-serif text-[1.25rem] text-ink">Past visits</h2>

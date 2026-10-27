@@ -25,8 +25,13 @@ export function classifyMediaError(e: unknown): MediaFail {
   return "other";
 }
 
-/** The https address this prototype is actually reachable on. */
-const SECURE_URL = "https://192.168.53.2:8443";
+/** The https address this prototype is reachable on, for whatever host the
+ *  patient actually loaded — a hardcoded LAN IP named the wrong machine for
+ *  anyone else. */
+function secureUrl(): string {
+  if (typeof window === "undefined") return "https://localhost:8443";
+  return `https://${window.location.hostname}:8443`;
+}
 
 const TROUBLE: Record<MediaFail, { title: string; body: React.ReactNode }> = {
   insecure: {
@@ -34,7 +39,7 @@ const TROUBLE: Record<MediaFail, { title: string; body: React.ReactNode }> = {
     body: (
       <>
         Browsers only open the camera and microphone on a secure address, so they&rsquo;re off here. Open the
-        portal at <span className="font-medium text-ink">{SECURE_URL}</span> and the video visit works normally.
+        portal at <span className="font-medium text-ink">{secureUrl()}</span> and the video visit works normally.
         Joining by phone works from anywhere.
       </>
     ),
@@ -121,6 +126,8 @@ export function VideoVisit({ visit, onLeave }: { visit: Visit; onLeave: () => vo
   const [starting, setStarting] = useState(true);
   /** Mirrors streamRef so render reacts to the stream arriving. */
   const [ready, setReady] = useState(false);
+  /** Camera blocked but the mic came through: still a usable visit. */
+  const [audioOnly, setAudioOnly] = useState(false);
   const [fail, setFail] = useState<MediaFail | null>(null);
   const [camOn, setCamOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
@@ -200,10 +207,22 @@ export function VideoVisit({ visit, onLeave }: { visit: Visit; onLeave: () => vo
       stopMeter();
       stopStream();
       try {
-        const s = await navigator.mediaDevices.getUserMedia({
-          video: wantCam ? { deviceId: { exact: wantCam } } : true,
-          audio: wantMic ? { deviceId: { exact: wantMic } } : true,
-        });
+        const video = wantCam ? { deviceId: { exact: wantCam } } : true;
+        const audio = wantMic ? { deviceId: { exact: wantMic } } : true;
+        let s: MediaStream;
+        try {
+          s = await navigator.mediaDevices.getUserMedia({ video, audio });
+          setAudioOnly(false);
+        } catch (err) {
+          /* Asking for both in one call meant a camera-only block rejected the
+             whole thing, and we told the patient the microphone was blocked
+             too. Retry audio alone: a visit you can talk through is worth more
+             than a correct error message. */
+          const name = (err as DOMException)?.name;
+          if (name !== "NotAllowedError" && name !== "NotFoundError") throw err;
+          s = await navigator.mediaDevices.getUserMedia({ audio });
+          setAudioOnly(true);
+        }
         streamRef.current = s;
         s.getVideoTracks().forEach((t) => { t.enabled = camOn; });
         s.getAudioTracks().forEach((t) => { t.enabled = micOn; });
@@ -318,10 +337,17 @@ export function VideoVisit({ visit, onLeave }: { visit: Visit; onLeave: () => vo
               <p className="font-serif text-[1.1rem] text-ink">{providerName}</p>
               <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-sage-600">
                 <span className="h-2 w-2 rounded-full bg-sage-500" aria-hidden="true" />
-                Connected · audio and video
+                Connected · {audioOnly ? "audio only" : "audio and video"}
               </p>
             </div>
           </div>
+          {audioOnly && (
+            <p className="border-t border-line bg-slate-50 px-4 py-3 text-[0.95rem] leading-relaxed text-ink">
+              Your camera is blocked for this site, so this one is by voice. The visit works exactly the same —
+              your provider just won&rsquo;t see you. To turn it on, tap the lock icon in your address bar, set
+              Camera to Allow, then rejoin.
+            </p>
+          )}
           <p className="border-t border-line bg-panel px-4 py-3 text-xs leading-relaxed text-muted">
             Simulated for this prototype — there is no provider on the other end. Your own camera and microphone
             below are real.
@@ -412,6 +438,17 @@ export function VideoVisit({ visit, onLeave }: { visit: Visit; onLeave: () => vo
             <p className="mt-2.5 text-sm text-muted" role="status">
               Starting your camera — your browser may ask permission first.
             </p>
+          )}
+
+          {audioOnly && (
+            <Card className="rise mt-3.5 border-slate-200 bg-slate-50 p-5" role="status">
+              <h2 className="font-medium text-ink">We&rsquo;ll do this one by voice</h2>
+              <p className="mt-1.5 text-[0.95rem] leading-relaxed text-muted">
+                Your camera is blocked for this site, but your microphone came through — so the visit works, your
+                provider just won&rsquo;t see you. Plenty of people prefer it that way. To turn the camera on, tap
+                the lock icon in your address bar, set Camera to Allow, then tap Try again.
+              </p>
+            </Card>
           )}
 
           <Card className="mt-3.5 p-5">

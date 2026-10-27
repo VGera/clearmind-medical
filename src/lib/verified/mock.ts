@@ -41,11 +41,16 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
  *
  * `force` exists so a demo can show any channel on purpose.
  */
-export async function verifyAutofill(force?: VerifyChannel): Promise<VerifyResult | null> {
+export async function verifyAutofill(force?: VerifyChannel, typed?: string): Promise<VerifyResult | null> {
   await sleep(900);
   const channel = force ?? pickChannel();
   if (channel !== "autofill") return null;
-  return { phone: "+15125550134", channel: "autofill", verified: true };
+  /* Echo back what they actually entered. Returning a fixed number meant the
+     "Is this your number?" screen could show a different one, and accepting it
+     overwrote the number they'd typed. */
+  const digits = (typed ?? "").replace(/\D/g, "");
+  const phone = digits.length === 10 ? `+1${digits}` : "+15125550134";
+  return { phone, channel: "autofill", verified: true };
 }
 
 export async function verifySilent(phone: string, force?: VerifyChannel): Promise<VerifyResult | null> {

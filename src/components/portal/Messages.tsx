@@ -39,11 +39,17 @@ export function Messages({ seed, provider }: { seed?: string; provider: string }
     if (el) el.scrollTop = el.scrollHeight;
   }, [msgs]);
 
-  const crisis = detectCrisis(draft);
+  /* Latched for the session once it fires. The panel was bound to the draft
+     alone, so sending the message — which this screen explicitly tells them to
+     do — took the crisis resources off the screen at the exact moment they had
+     just disclosed, and replaced them with a reply-time reassurance. */
+  const [disclosed, setDisclosed] = useState(false);
+  const crisis = detectCrisis(draft) || disclosed;
 
   const send = () => {
     const text = draft.trim();
     if (!text) return;
+    if (detectCrisis(text)) setDisclosed(true);
     setMsgs((m) => [...m, { id: `m${Date.now()}`, from: "patient", text, ago: 0 }]);
     setDraft("");
     setJustSent(true);
@@ -99,8 +105,13 @@ export function Messages({ seed, provider }: { seed?: string; provider: string }
         {justSent && (
           <div className="border-t border-line bg-sage-100/60 px-4 py-3">
             <p className="text-[0.95rem] leading-relaxed text-sage-600">
-              Sent. {provider} usually replies within 1 business day — you&rsquo;ll get a text when she does. You
-              don&rsquo;t need to wait here.
+              {disclosed ? (
+                <>Sent, and it will be read. {provider} replies within 1 business day — please don&rsquo;t wait
+                on that if you need someone sooner.</>
+              ) : (
+                <>Sent. {provider} usually replies within 1 business day — you&rsquo;ll get a text when she does.
+                You don&rsquo;t need to wait here.</>
+              )}
             </p>
           </div>
         )}
@@ -117,7 +128,7 @@ export function Messages({ seed, provider }: { seed?: string; provider: string }
               <a href={PRACTICE.phoneHref} className="font-semibold text-slate-600 underline decoration-current underline-offset-2">
                 {PRACTICE.phone}
               </a>
-              . Send the message too — it will be read.
+              . {justSent && disclosed ? "Your message has been sent, and it will be read." : "Send the message too \u2014 it will be read."}
             </p>
           </div>
         )}
@@ -141,6 +152,8 @@ export function Messages({ seed, provider }: { seed?: string; provider: string }
           <textarea
             ref={box}
             rows={1}
+            /* Generous, but bounded — there was no cap at all. */
+            maxLength={4000}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onInput={(e) => {

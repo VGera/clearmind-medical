@@ -24,7 +24,7 @@ const config: Config = {
           700: "#1b3543",
         },
         sage: { 100: "#e6efe8", 500: "#5f8871", 600: "#4c7159" },
-        clay: { 100: "#f6ece4", 500: "#b9764f", 600: "#9c6241" },
+        clay: { 100: "#f6ece4", 500: "#b9764f", 600: "#8a5436" },
         alert: { 100: "#f7e9e7", 500: "#a4433b" },
         /* Soft tints for the acquisition surfaces. Every pairing below is
            dark-on-pastel, so all of them clear AA comfortably. */

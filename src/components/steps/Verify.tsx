@@ -55,7 +55,7 @@ export function Verify({
     if (started.current) return;
     started.current = true;
     (async () => {
-      const auto = await verifyAutofill();
+      const auto = await verifyAutofill(undefined, intake.account.phone);
       if (auto) {
         setChannelPhone(auto.phone);
         setStage("autofilled");
@@ -245,9 +245,9 @@ function Why() {
     <Card className="mt-6 p-5">
       <h2 className="font-medium text-ink">Why we ask</h2>
       <p className="mt-1.5 text-[0.95rem] leading-relaxed text-muted">
-        A confirmed number is how we text your visit link 30 minutes before, and remind you the day before. If we
-        can&rsquo;t reach you, you miss the appointment — and that&rsquo;s the thing we most want to avoid. Nothing
-        else is sent to this number, and you can turn reminders off any time.
+        A confirmed number is how we text your visit link 30 minutes before, and remind you the day before — so
+        the appointment doesn&rsquo;t quietly slip past. Nothing else is sent to this number, and you can turn
+        reminders off any time.
       </p>
       <p className="mt-2.5 text-[0.95rem] leading-relaxed text-muted">
         Stuck? Call us at{" "}
