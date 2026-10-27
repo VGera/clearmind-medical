@@ -37,6 +37,29 @@ Patients using this may be depressed, anxious, or in crisis. So:
 - Cost stated (**$0 today**) before the card fields.
 - The two hard limits are on the landing page, before anyone invests effort.
 
+## Testing the microphone
+
+Browsers grant microphone access only on a **secure context** — `https://` or
+`localhost`. Over `http://192.168.53.2:8101` the `SpeechRecognition`
+constructor still exists but `navigator.mediaDevices` is `undefined`, so the
+app detects `window.isSecureContext === false`, hides the mic, and says why
+instead of offering a button that always fails.
+
+To use voice from another machine, pick one:
+
+```bash
+# 1. SSH tunnel — the app becomes localhost on your laptop, so the mic works.
+ssh -N -L 8101:localhost:8101 vijeta@192.168.53.2
+#    then open http://localhost:8101
+
+# 2. Chrome only, no tunnel: treat the LAN origin as secure.
+#    chrome://flags/#unsafely-treat-insecure-origin-as-secure
+#    add http://192.168.53.2:8101, relaunch.
+```
+
+For phone testing the mic needs real HTTPS — a trusted tunnel
+(cloudflared/ngrok) or a cert the device trusts.
+
 ## Voice: dictation only
 
 The microphone is for **typing free text**, in the two places where typing is

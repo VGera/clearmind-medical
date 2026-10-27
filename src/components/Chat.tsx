@@ -11,7 +11,7 @@ import type { HealthDiscovery, VPayer } from "@/lib/verified/types";
 import { blockerFor, type Intake } from "@/lib/types";
 import { useVoice } from "@/lib/voice";
 import { Button, Card, Icon } from "./ui";
-import { MicButton } from "./VoiceBits";
+import { MicButton, MicNote } from "./VoiceBits";
 
 type Slot = "state" | "adult" | "carrier" | "otherPayer" | "conditions" | "symptoms" | "need" | "ready";
 
@@ -168,7 +168,7 @@ export function Chat({
   /** False while the form half is showing — this stays mounted but idle. */
   active: boolean;
 }) {
-  const { sttSupported } = useVoice();
+  const { sttSupported, micBlocked } = useVoice();
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [typing, setTyping] = useState(false);
   const [draft, setDraft] = useState("");
@@ -761,6 +761,12 @@ export function Chat({
           </form>
         )}
       </Card>
+
+      {!sttSupported && micBlocked && micBlocked !== "off" && (
+        <p className="mt-3">
+          <MicNote reason={micBlocked} />
+        </p>
+      )}
 
       <p className="mt-3 text-xs leading-relaxed text-muted">
         In crisis? Call or text{" "}

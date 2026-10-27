@@ -36,9 +36,13 @@ export type ResultHandler = (text: string, isFinal: boolean) => void;
  *
  * ?novoice=1 disables the microphone too.
  */
+/** Why the mic isn't offered, when it isn't. */
+export type MicBlock = "insecure" | "unsupported" | "off" | null;
+
 interface VoiceCtx {
   ready: boolean;
   sttSupported: boolean;
+  micBlocked: MicBlock;
   listening: boolean;
   /** Which mic is active, e.g. "symptoms" or "chat". */
   target: string | null;
@@ -53,6 +57,7 @@ const Ctx = createContext<VoiceCtx | null>(null);
 export function VoiceProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [sttSupported, setStt] = useState(false);
+  const [micBlocked, setMicBlocked] = useState<MicBlock>(null);
   const [listening, setListening] = useState(false);
   const [target, setTarget] = useState<string | null>(null);
   const [interim, setInterim] = useState("");
@@ -70,12 +75,19 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
       /* noop */
     }
     try {
-      if (!off) {
-        const w = window as unknown as { SpeechRecognition?: SRCtor; webkitSpeechRecognition?: SRCtor };
-        setStt(Boolean(w.SpeechRecognition ?? w.webkitSpeechRecognition));
-      }
+      const w = window as unknown as { SpeechRecognition?: SRCtor; webkitSpeechRecognition?: SRCtor };
+      const ctor = Boolean(w.SpeechRecognition ?? w.webkitSpeechRecognition);
+      /* The constructor exists on an insecure origin but the microphone does
+         not, so checking for it alone renders a button that always fails.
+         Browsers only grant the mic on https or localhost. */
+      const secure = window.isSecureContext !== false;
+      if (off) setMicBlocked("off");
+      else if (!ctor) setMicBlocked("unsupported");
+      else if (!secure) setMicBlocked("insecure");
+      else setMicBlocked(null);
+      setStt(!off && ctor && secure);
     } catch {
-      /* no recognition support — typing still works everywhere */
+      setMicBlocked("unsupported");
     }
     try {
       /* Left over from the removed read-aloud feature. */
@@ -162,8 +174,8 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo<VoiceCtx>(
-    () => ({ ready, sttSupported, listening, target, interim, error, startListening, stopListening }),
-    [ready, sttSupported, listening, target, interim, error, startListening, stopListening],
+    () => ({ ready, sttSupported, micBlocked, listening, target, interim, error, startListening, stopListening }),
+    [ready, sttSupported, micBlocked, listening, target, interim, error, startListening, stopListening],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

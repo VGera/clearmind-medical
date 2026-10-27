@@ -2,6 +2,7 @@
 
 import React from "react";
 import { CARRIERS, CONDITIONS, PRACTICE, RATING, TESTIMONIALS, type Tint } from "@/lib/data";
+import { useVoice } from "@/lib/voice";
 import { Button, Card, Icon } from "../ui";
 
 const TINTS: Record<Tint, string> = {
@@ -26,6 +27,7 @@ function Stars({ score }: { score: number }) {
 }
 
 export function Landing({ onStart }: { onStart: (mode: "form" | "chat") => void }) {
+  const { sttSupported, micBlocked } = useVoice();
   return (
     <div className="rise">
       {/* A warm panel rather than a flat page. Calm, but not colourless. */}
@@ -73,10 +75,25 @@ export function Landing({ onStart }: { onStart: (mode: "form" | "chat") => void 
       <Card className="mt-8 border-tint-skyInk/15 bg-tint-sky p-5">
         <div className="flex items-start gap-3.5">
           <span className="mt-0.5 shrink-0 text-tint-skyInk"><Icon name="mic" className="h-5 w-5" /></span>
-          <p className="text-[0.95rem] leading-relaxed text-muted">
-            When you get to the part where you describe what&rsquo;s going on, you can{" "}
-            <strong className="font-medium text-ink">tap the microphone and just talk</strong> instead of typing.
-            Same in the chat.
+          <p className="text-[0.95rem] leading-relaxed text-tint-skyInk">
+            {sttSupported ? (
+              <>
+                When you get to the part where you describe what&rsquo;s going on, you can{" "}
+                <strong className="font-semibold text-ink">tap the microphone and just talk</strong> instead of
+                typing. Same in the chat.
+              </>
+            ) : micBlocked === "insecure" ? (
+              <>
+                Voice typing is off on this address — it needs a secure{" "}
+                <strong className="font-semibold text-ink">https</strong> connection. Everything else works the
+                same, and nothing here needs more than short answers.
+              </>
+            ) : (
+              <>
+                Everything here can be answered with short taps. The one longer question is optional — a sentence
+                is plenty.
+              </>
+            )}
           </p>
         </div>
       </Card>

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useVoice } from "@/lib/voice";
+import { useVoice, type MicBlock } from "@/lib/voice";
 import { Icon } from "./ui";
 
 /* ------------------------------------------------------------------ */
@@ -10,6 +10,18 @@ import { Icon } from "./ui";
 /* The only voice feature: dictation into a free-text field. The app    */
 /* never speaks, and choices are tapped, not spoken.                   */
 /* ------------------------------------------------------------------ */
+
+/** Says why the mic isn't there, without blaming the patient's settings. */
+export function MicNote({ reason }: { reason: MicBlock }) {
+  if (!reason || reason === "off") return null;
+  return (
+    <p className="text-xs leading-relaxed text-muted">
+      {reason === "insecure"
+        ? "Voice typing needs a secure (https) address, so it's off here. Typing works exactly the same."
+        : "This browser can't do voice typing. Chrome or Edge can — typing works everywhere."}
+    </p>
+  );
+}
 
 export function MicButton({
   target,
@@ -67,7 +79,7 @@ export function DictateTextarea({
   rows?: number;
   placeholder?: string;
 }) {
-  const { sttSupported, listening, target: active, interim, error } = useVoice();
+  const { sttSupported, micBlocked, listening, target: active, interim, error } = useVoice();
   const on = listening && active === target;
   const base = value;
 
@@ -86,7 +98,7 @@ export function DictateTextarea({
           onChange={(e) => onChange(e.target.value)}
           className="w-full resize-y rounded-xl2 bg-transparent px-4 py-3.5 text-[1rem] leading-relaxed text-ink placeholder:text-faint focus:outline-none"
         />
-        {sttSupported && (
+        {sttSupported ? (
           <div className="flex items-center justify-between gap-3 border-t border-line/70 px-3 py-2.5">
             <p className="text-xs text-muted" aria-live="polite">
               {on ? "Listening — speak naturally, I'll keep typing." : "Type, or tap the mic and say it out loud."}
@@ -102,7 +114,11 @@ export function DictateTextarea({
               }}
             />
           </div>
-        )}
+        ) : micBlocked && micBlocked !== "off" ? (
+          <div className="border-t border-line/70 px-3 py-2.5">
+            <MicNote reason={micBlocked} />
+          </div>
+        ) : null}
       </div>
       {error && <p className="mt-2 text-xs text-clay-600" role="alert">{error}</p>}
     </div>
