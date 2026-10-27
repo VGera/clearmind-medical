@@ -21,3 +21,9 @@ tsconfig.tsbuildinfo
 
 # self-signed TLS material for local HTTPS
 deploy/tls/key.pem
+
+# full build transcript — kept locally, never published
+CONVERSATION.md
+
+# local redaction list for the transcript generator (never committed)
+.redact

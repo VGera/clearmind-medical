@@ -59,6 +59,28 @@ def agent_report(text):
     return m.group(1), body.strip()
 
 
+# Strings that must never be written back into the transcript, however they
+# got into the session. A credential pasted into chat by accident would
+# otherwise reappear here on every rebuild. The list itself lives in .redact,
+# which is gitignored — the point is to keep these out of version control, so
+# hardcoding them in this file would defeat it. One string per line.
+def _redactions():
+    f = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".redact")
+    if not os.path.exists(f):
+        return []
+    with open(f, encoding="utf-8") as fh:
+        return [ln.strip() for ln in fh if ln.strip() and not ln.startswith("#")]
+
+
+REDACT = _redactions()
+
+
+def redact(text):
+    for secret in REDACT:
+        text = text.replace(secret, "[redacted]")
+    return text
+
+
 def clean_user(text):
     """Keep what the person actually wrote; drop harness scaffolding."""
     # Mid-turn interjection wrapper
@@ -74,7 +96,7 @@ def clean_user(text):
     text = re.sub(r'<pasted_content id="[^"]*">', "", text)
     text = re.sub(r"</pasted_content id=\"[^\"]*\">", "", text)
     text = re.sub(r"</pasted_content>", "", text)
-    return text.strip()
+    return redact(text.strip())
 
 def ts(rec):
     t = rec.get("timestamp")
@@ -313,7 +335,9 @@ else:
     A("_(Anything you write here survives when the record is rebuilt.)_")
 
 with open(OUT, "w") as f:
-    f.write("\n".join(lines) + "\n")
+    # Redact at the point of writing, not per-speaker: the string also had to
+    # come out of the replies that quoted it back.
+    f.write(redact("\n".join(lines)) + "\n")
 
 print(f"wrote {OUT} — {sum(1 for t in turns if t['who']=='user')} prompts, "
       f"{sum(1 for t in turns if t['who']=='claude')} replies"
