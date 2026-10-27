@@ -339,6 +339,26 @@ export function VideoVisit({ visit, onLeave }: { visit: Visit; onLeave: () => vo
                 <span className="h-2 w-2 rounded-full bg-sage-500" aria-hidden="true" />
                 Connected · {audioOnly ? "audio only" : "audio and video"}
               </p>
+              {/* The level meter existed only on the pre-join screen, so once
+                  the visit started there was no way to tell you were being
+                  heard — the question most likely to be nagging at someone
+                  anxious mid-appointment. */}
+              <div className="mt-2 flex items-center gap-2">
+                <div
+                  role="meter"
+                  aria-label="Your microphone level"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={micOn ? Math.round(level * 100) : 0}
+                  className="h-2 w-20 overflow-hidden rounded-full bg-slate-100"
+                >
+                  <div
+                    className="h-full rounded-full bg-sage-500 transition-[width] duration-75"
+                    style={{ width: `${micOn ? Math.round(level * 100) : 0}%` }}
+                  />
+                </div>
+                <span className="text-xs text-muted">{micOn ? "Your mic" : "Muted"}</span>
+              </div>
             </div>
           </div>
           {audioOnly && (
