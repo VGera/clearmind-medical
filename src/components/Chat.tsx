@@ -309,6 +309,20 @@ export function Chat({
         return true;
       }
 
+      if (lookup.phase === "name" || lookup.phase === "dob") {
+        /* A carrier answer here means they'd rather just name it. */
+        const direct = matchCarrier(text, false);
+        if (direct || text.trim().toLowerCase() === LOOKUP) {
+          setLookup(null);
+          if (!direct) {
+            const p = promptFor("carrier");
+            say(["We're already looking — I just need your full name, first and last."], p.chips);
+            return true;
+          }
+          return false; // let the normal carrier handling take it
+        }
+      }
+
       if (lookup.phase === "name") {
         const n = parseName(text);
         if (!n) {
@@ -582,8 +596,12 @@ export function Chat({
   };
 
   const lastChips = [...msgs].reverse().find((m) => m.who === "bot" && m.chips)?.chips;
-  const showChips = !typing && !blocked && !finished && !paused ? lastChips : undefined;
-  void lookup;
+  /* Stale chips must not stay tappable while a free-text answer is expected —
+     otherwise "Look it up for me" arrives as the answer to "your full name?".
+     The "pick" phase sets its own chips, so it keeps them. */
+  const awaitingFreeText = lookup !== null && lookup.phase !== "pick";
+  const showChips =
+    !typing && !blocked && !finished && !paused && !awaitingFreeText ? lastChips : undefined;
 
   return (
     <div>
