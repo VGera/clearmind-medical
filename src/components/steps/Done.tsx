@@ -135,7 +135,7 @@ export function Done({
               patch({
                 visitsCompleted: Math.min(intake.visitsCompleted + 1, 4),
                 intakeFormDone: true,
-                prescriptionSent: intake.visitsCompleted + 1 >= 1,
+                summarySent: intake.visitsCompleted + 1 >= 1,
               })
             }
             className="min-h-[2.75rem] rounded-full border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-600"
@@ -149,7 +149,7 @@ export function Done({
             Toggle intake form
           </button>
           <button
-            onClick={() => patch({ visitsCompleted: 0, intakeFormDone: false, prescriptionSent: false })}
+            onClick={() => patch({ visitsCompleted: 0, intakeFormDone: false, summarySent: false })}
             className="min-h-[2.75rem] rounded-full border border-line bg-panel px-4 text-sm text-muted"
           >
             Reset

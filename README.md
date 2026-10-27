@@ -37,30 +37,38 @@ Patients using this may be depressed, anxious, or in crisis. So:
 - Cost stated (**$0 today**) before the card fields.
 - The two hard limits are on the landing page, before anyone invests effort.
 
-## Testing the microphone
+## HTTPS (and therefore the microphone)
 
-Browsers grant microphone access only on a **secure context** — `https://` or
-`localhost`. Over `http://192.168.53.2:8101` the `SpeechRecognition`
-constructor still exists but `navigator.mediaDevices` is `undefined`, so the
-app detects `window.isSecureContext === false`, hides the mic, and says why
-instead of offering a button that always fails.
+Browsers expose `navigator.mediaDevices` only on a **secure context** —
+`https://` or `localhost`. Over `http://192.168.53.2:8101` the
+`SpeechRecognition` constructor still exists but the microphone does not, so
+the app checks `window.isSecureContext`, hides the mic, and says why.
 
-To use voice from another machine, pick one:
+A Caddy sidecar terminates TLS on **8443** and proxies to the app, which stays
+on 8101:
 
-```bash
-# 1. SSH tunnel — the app becomes localhost on your laptop, so the mic works.
-ssh -N -L 8101:localhost:8101 vijeta@192.168.53.2
-#    then open http://localhost:8101
-
-# 2. Chrome only, no tunnel: treat the LAN origin as secure.
-#    chrome://flags/#unsafely-treat-insecure-origin-as-secure
-#    add http://192.168.53.2:8101, relaunch.
+```
+https://192.168.53.2:8443      <- use this; microphone works
+http://192.168.53.2:8101       <- still there; microphone hidden
 ```
 
-For phone testing the mic needs real HTTPS — a trusted tunnel
-(cloudflared/ngrok) or a cert the device trusts.
+```bash
+systemctl --user status clearmind-https     # the sidecar
+sudo ufw allow 8443/tcp                     # before testing from a phone
+```
 
-## Voice: dictation only
+The certificate is self-signed (`deploy/tls/`, SANs: `localhost`,
+`127.0.0.1`, `192.168.53.2`, valid to Jan 2029; the key is gitignored).
+Browsers will warn once — **Advanced → Proceed** — after which the origin is a
+real secure context and the mic works. To silence the warning, trust
+`deploy/tls/cert.pem` on the device: on macOS, drag it into Keychain Access
+→ System and set it to *Always Trust*; on iOS, mail it to yourself, install
+the profile, then enable it under Settings → General → About → Certificate
+Trust Settings.
+
+Regenerate the cert with `deploy/tls/san.cnf` if the LAN address changes.
+
+## Voice: dictation only## Voice: dictation only
 
 The microphone is for **typing free text**, in the two places where typing is
 the hard part:

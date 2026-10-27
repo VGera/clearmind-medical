@@ -1,0 +1,17 @@
+# TLS in front of the app, so the microphone works off this machine.
+#
+# Browsers only expose navigator.mediaDevices on a secure context, which a
+# plain-HTTP LAN address is not. The app itself stays on 8101; this is a
+# sidecar that terminates TLS on 8443 and proxies to it.
+{
+	admin off
+	auto_https off
+}
+
+:8443 {
+	tls /home/vijeta/clearmind-medical/deploy/tls/cert.pem /home/vijeta/clearmind-medical/deploy/tls/key.pem
+	encode gzip
+	reverse_proxy 127.0.0.1:8101 {
+		header_up X-Forwarded-Proto https
+	}
+}

@@ -1,0 +1,20 @@
+[req]
+distinguished_name = dn
+x509_extensions    = v3
+prompt             = no
+
+[dn]
+CN = ClearMind Medical (prototype)
+O  = ClearMind Medical
+C  = US
+
+[v3]
+subjectAltName   = @alt
+basicConstraints = critical, CA:FALSE
+keyUsage         = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+
+[alt]
+DNS.1 = localhost
+IP.1  = 127.0.0.1
+IP.2  = 192.168.53.2

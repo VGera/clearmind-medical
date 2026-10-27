@@ -84,7 +84,7 @@ export function CarePlan({ intake, start }: { intake: Intake; start: Date }) {
       <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-4">
         {[
           { label: "Intake form", done: intake.intakeFormDone },
-          { label: "Prescription sent", done: intake.prescriptionSent },
+          { label: "Visit summary", done: intake.summarySent },
         ].map((s) => (
           <span
             key={s.label}
@@ -98,10 +98,6 @@ export function CarePlan({ intake, start }: { intake: Intake; start: Date }) {
         ))}
       </div>
 
-      <p className="mt-4 text-sm leading-relaxed text-muted">
-        Nothing here expires, and missing one doesn&rsquo;t undo anything. If a date stops working, move it — that
-        counts as keeping the plan, not breaking it.
-      </p>
     </Card>
   );
 }
