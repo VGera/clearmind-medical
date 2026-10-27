@@ -2,7 +2,9 @@
 
 import React, { useMemo, useState } from "react";
 import { PRACTICE, PROVIDERS, resolveSlots, slotId } from "@/lib/data";
-import { type Visit, visitDate, when } from "@/lib/portal/mock";
+import { headline, rankProviders, type Ranked } from "@/lib/match";
+import { PATIENT_INTAKE, type Visit, visitDate, when } from "@/lib/portal/mock";
+import { emptyIntake } from "@/lib/types";
 import { dayLabel, fullSlotLabel, timeLabel, titleFor } from "../steps/Match";
 import { Avatar, Badge, Button, Card, Icon } from "../ui";
 
@@ -31,6 +33,119 @@ function openTimes(now: Date, providerId: string, exclude?: number) {
     .filter((s) => s.date.getTime() !== exclude);
 }
 
+/**
+ * One alternative provider. Same shape as the booking flow's card — bullets,
+ * an About disclosure, times as pills — so switching clinician doesn't look
+ * like a different product than choosing one did.
+ */
+function SwitchCard({
+  r,
+  now,
+  badge,
+  tone,
+  onPick,
+}: {
+  r: Ranked;
+  now: Date;
+  badge?: string;
+  tone?: "slate" | "sage";
+  onPick: (c: Choice) => void;
+}) {
+  const [all, setAll] = useState(false);
+  const p = r.provider;
+  const times = openTimes(now, p.id);
+  const shown = all ? times.length : Math.min(3, times.length);
+  const who = titleFor(p.credential, p.name);
+  const otherLangs = p.languages.filter((l) => l !== "English");
+
+  return (
+    <Card className={`${badge ? "border-slate-200 shadow-lift" : ""} p-5`}>
+      {badge && (
+        <div className="mb-4">
+          <Badge tone={tone ?? "slate"}>
+            <Icon name={tone === "sage" ? "clock" : "spark"} className="h-3.5 w-3.5" />
+            {badge}
+          </Badge>
+        </div>
+      )}
+
+      <div className="flex items-start gap-3.5">
+        <Avatar name={p.name} tint={p.tint} size={48} />
+        <div className="min-w-0 flex-1">
+          <h3 className="font-serif text-[1.1rem] leading-snug text-ink">
+            {who}, {p.credential}
+          </h3>
+          <p className="mt-0.5 text-sm text-muted">
+            {p.role} · ★ {p.rating.toFixed(1)}
+          </p>
+          {otherLangs.length > 0 && (
+            <p className="mt-2">
+              <Badge tone="sage">
+                <Icon name="chat" className="h-3.5 w-3.5" />
+                Speaks {otherLangs.join(" and ")}
+              </Badge>
+            </p>
+          )}
+        </div>
+      </div>
+
+      <ul className="mt-3.5 space-y-2">
+        {[p.bio, ...r.reasons].map((line) => (
+          <li key={line} className="flex items-start gap-2.5 text-[0.95rem] leading-relaxed text-ink">
+            <span
+              aria-hidden="true"
+              className="mt-[0.45rem] h-1.5 w-1.5 shrink-0 rounded-full"
+              style={{ background: p.tint }}
+            />
+            {line}
+          </li>
+        ))}
+      </ul>
+
+      <details className="group mt-3">
+        <summary
+          className="inline-flex min-h-[2.75rem] cursor-pointer list-none items-center gap-1.5 rounded-full px-3.5 text-sm font-medium text-slate-600 transition"
+          style={{ background: `${p.tint}1a` }}
+        >
+          About {p.name.split(" ")[0]}
+          <Icon name="arrow" className="h-4 w-4 rotate-90 transition group-open:-rotate-90" />
+        </summary>
+        <p
+          className="mt-2.5 rounded-xl2 px-4 py-3.5 text-[0.95rem] leading-relaxed text-ink"
+          style={{ background: `${p.tint}0f` }}
+        >
+          {p.approach}
+        </p>
+      </details>
+
+      <div className="mt-5 border-t border-line pt-4">
+        <div className="flex flex-wrap gap-2" role="group" aria-label={`Open times with ${who}`}>
+          {times.slice(0, shown).map((t) => (
+            <button
+              key={slotId(p.id, t.hours)}
+              type="button"
+              onClick={() => onPick(t)}
+              aria-label={`${fullSlotLabel(t.date, now)} with ${who}`}
+              className="min-h-[3rem] whitespace-nowrap rounded-full border border-line bg-panel px-4 text-[0.95rem] text-ink transition hover:border-slate-300 hover:bg-slate-50"
+            >
+              {dayLabel(t.date, now)} · {timeLabel(t.date)}
+            </button>
+          ))}
+          {!all && times.length > 3 && (
+            <button
+              type="button"
+              onClick={() => setAll(true)}
+              className="min-h-[3rem] px-3 text-[0.95rem] text-slate-600 underline decoration-current underline-offset-2"
+            >
+              More times
+            </button>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export function Reschedule({
   visit,
   now,
@@ -49,6 +164,7 @@ export function Reschedule({
   const [stage, setStage] = useState<Stage>("pick");
   const [picked, setPicked] = useState<Choice | null>(null);
   const [booked, setBooked] = useState<Choice | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   const provider = PROVIDERS.find((p) => p.id === visit.providerId);
   const who = provider ? titleFor(provider.credential, provider.name) : visit.providerName;
@@ -67,14 +183,37 @@ export function Reschedule({
     [visit.providerId, visit.hours, now],
   );
 
-  const others = useMemo(
-    () => PROVIDERS.filter((p) => p.id !== visit.providerId).map((p) => ({ p, times: openTimes(now, p.id) })),
-    [visit.providerId, now],
+  /* Ranked with the booking flow's own scorer, against what this patient told
+     us at intake — so "recommended" here means the same thing it meant when
+     they first chose. Two cards up front, everyone else behind Find more. */
+  const alts = useMemo(() => {
+    const ranked = rankProviders({ ...emptyIntake, ...PATIENT_INTAKE }).filter(
+      (r) => r.provider.id !== visit.providerId,
+    );
+    return headline(ranked);
+  }, [visit.providerId]);
+
+  const firstTimeOf = (r: Ranked) => openTimes(now, r.provider.id)[0]?.date ?? now;
+  /* Only call the second card "soonest" when it actually is, or the badge
+     contradicts the times printed underneath it. */
+  const secondIsSooner = Boolean(
+    alts.soonest && firstTimeOf(alts.soonest) < firstTimeOf(alts.recommended),
   );
+  const secondBadge = alts.soonest
+    ? secondIsSooner
+      ? `Soonest — ${fullSlotLabel(firstTimeOf(alts.soonest), now).toLowerCase()}`
+      : "Also a strong fit"
+    : "";
 
   const pickedProvider = picked ? PROVIDERS.find((p) => p.id === picked.providerId) : undefined;
   const switching = Boolean(picked && picked.providerId !== visit.providerId);
   const bookedProvider = booked ? PROVIDERS.find((p) => p.id === booked.providerId) : provider;
+
+  const choose = (c: Choice) => {
+    setPicked(c);
+    setStage("confirm");
+    window.scrollTo({ top: 0 });
+  };
 
   const commit = () => {
     if (!picked) return;
@@ -162,75 +301,34 @@ export function Reschedule({
           </p>
 
           <div className="mt-4 space-y-3">
-            {others.map(({ p, times }) => (
-              <Card key={p.id} className="p-5">
-                <div className="flex items-start gap-3.5">
-                  <Avatar name={p.name} tint={p.tint} size={48} />
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-serif text-[1.1rem] leading-snug text-ink">
-                      {titleFor(p.credential, p.name)}, {p.credential}
-                    </h3>
-                    <p className="mt-0.5 text-sm text-muted">{p.role} · ★ {p.rating.toFixed(1)}</p>
-                    {p.languages.filter((l) => l !== "English").length > 0 && (
-                      <p className="mt-2">
-                        <Badge tone="sage">
-                          <Icon name="chat" className="h-3.5 w-3.5" />
-                          Speaks {p.languages.filter((l) => l !== "English").join(" and ")}
-                        </Badge>
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <ul className="mt-3.5 space-y-2">
-                  <li className="flex items-start gap-2.5 text-[0.95rem] leading-relaxed text-ink">
-                    <span
-                      aria-hidden="true"
-                      className="mt-[0.45rem] h-1.5 w-1.5 shrink-0 rounded-full"
-                      style={{ background: p.tint }}
-                    />
-                    {p.bio}
-                  </li>
-                </ul>
-
-                <details className="group mt-3">
-                  <summary
-                    className="inline-flex min-h-[2.75rem] cursor-pointer list-none items-center gap-1.5 rounded-full px-3.5 text-sm font-medium text-slate-600"
-                    style={{ background: `${p.tint}1a` }}
-                  >
-                    About {p.name.split(" ")[0]}
-                    <Icon name="arrow" className="h-4 w-4 rotate-90 transition group-open:-rotate-90" />
-                  </summary>
-                  <p
-                    className="mt-2.5 rounded-xl2 px-4 py-3.5 text-[0.95rem] leading-relaxed text-ink"
-                    style={{ background: `${p.tint}0f` }}
-                  >
-                    {p.approach}
-                  </p>
-                </details>
-
-                <div className="mt-4 border-t border-line pt-4">
-                  <div
-                    className="flex flex-wrap gap-2"
-                    role="group"
-                    aria-label={`Open times with ${titleFor(p.credential, p.name)}`}
-                  >
-                    {times.slice(0, 3).map((t) => (
-                      <button
-                        key={slotId(p.id, t.hours)}
-                        type="button"
-                        onClick={() => { setPicked(t); setStage("confirm"); window.scrollTo({ top: 0 }); }}
-                        aria-label={`${fullSlotLabel(t.date, now)} with ${titleFor(p.credential, p.name)}`}
-                        className="min-h-[3rem] whitespace-nowrap rounded-full border border-line bg-panel px-4 text-[0.95rem] text-ink transition hover:border-slate-300 hover:bg-slate-50"
-                      >
-                        {dayLabel(t.date, now)} · {timeLabel(t.date)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </Card>
-            ))}
+            <SwitchCard r={alts.recommended} now={now} badge="Recommended for you" onPick={choose} />
+            {alts.soonest && (
+              <SwitchCard
+                r={alts.soonest}
+                now={now}
+                badge={secondBadge}
+                tone={secondIsSooner ? "sage" : "slate"}
+                onPick={choose}
+              />
+            )}
           </div>
+
+          {alts.rest.length > 0 && (
+            <div className="mt-5">
+              {!showAll ? (
+                <Button variant="secondary" className="w-full sm:w-auto" onClick={() => setShowAll(true)}>
+                  Find more
+                  <span className="text-muted">({alts.rest.length})</span>
+                </Button>
+              ) : (
+                <div className="rise space-y-3">
+                  {alts.rest.map((r) => (
+                    <SwitchCard key={r.provider.id} r={r} now={now} onPick={choose} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="mt-6 flex flex-col gap-2.5 border-t border-line pt-5 sm:flex-row">
             <Button variant="secondary" size="lg" className="w-full sm:w-auto" onClick={() => setStage("pick")}>

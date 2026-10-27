@@ -188,3 +188,17 @@ export function agoLabel(mins: number): string {
 
 /** The join window: a visit can be entered shortly before it starts. */
 export const JOIN_WINDOW_MINUTES = 15;
+
+/**
+ * What this patient told us at intake. Kept here so the portal can rank
+ * providers with the same scoring the booking flow uses, instead of a second
+ * ad-hoc ordering that would contradict it. Derived from the fixtures above:
+ * sertraline and hydroxyzine for depression and anxiety, lisdexamfetamine for
+ * ADHD, already diagnosed, BCBS.
+ */
+export const PATIENT_INTAKE = {
+  carrier: "bcbs" as const,
+  selfPay: false,
+  conditions: ["depression", "anxiety", "adhd"],
+  need: "have-dx" as const,
+};

@@ -46,9 +46,6 @@ export function Landing({ onStart }: { onStart: (mode: "form" | "chat") => void 
           <p className="mt-4 max-w-sm text-[1.0625rem] leading-relaxed text-ink/75 sm:max-w-md">
             Online psychiatry for adults in Texas — ADHD, anxiety, depression, bipolar, PTSD.
           </p>
-          <p className="mt-2 max-w-sm text-[1.0625rem] leading-relaxed text-ink/75">
-            A few short questions, or a chat. About five minutes.
-          </p>
 
           <p className="mt-5 inline-flex items-center gap-2 text-sm text-ink/75">
             <Stars score={RATING.score} />
@@ -56,34 +53,23 @@ export function Landing({ onStart }: { onStart: (mode: "form" | "chat") => void 
               <strong className="font-medium text-ink">{RATING.score}</strong> from {RATING.count} patients
             </span>
           </p>
-        </div>
-      </div>
 
-      <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-        <Button size="lg" onClick={() => onStart("form")} className="w-full sm:w-auto">
-          Start
-          <Icon name="arrow" className="h-5 w-5" />
-        </Button>
-        <Button size="lg" variant="secondary" onClick={() => onStart("chat")} className="w-full sm:w-auto">
-          <Icon name="chat" className="h-5 w-5" />
-          Chat instead
-        </Button>
-      </div>
-
-      <Card className="mt-8 border-tint-sandInk/15 bg-tint-sand p-5">
-        <div className="flex items-start gap-3.5">
-          <span className="mt-0.5 shrink-0 text-tint-sandInk"><Icon name="info" className="h-5 w-5" /></span>
-          <div className="min-w-0">
-            <p className="text-[0.95rem] leading-relaxed text-muted">
-              For now we see adults in <strong className="font-medium text-ink">{PRACTICE.stateNames}</strong> only,
-              and we can&rsquo;t bill <strong className="font-medium text-ink">Medicare or Medicaid</strong>.
-            </p>
-            <p className="mt-1.5 text-sm leading-relaxed text-muted">
-              More states are coming. If that&rsquo;s you today, we&rsquo;ll point you somewhere that can help.
-            </p>
+          {/* The two ways in live inside the panel. Kept outside it, they sat
+              62% down the first screen on a phone — below the fold once
+              Safari's URL bar is counted. */}
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <Button size="lg" onClick={() => onStart("form")} className="w-full sm:w-auto">
+              Start
+              <Icon name="arrow" className="h-5 w-5" />
+            </Button>
+            <Button size="lg" variant="secondary" onClick={() => onStart("chat")} className="w-full sm:w-auto">
+              <Icon name="chat" className="h-5 w-5" />
+              Chat instead
+            </Button>
           </div>
+          <p className="mt-3 text-sm text-ink/70">About five minutes.</p>
         </div>
-      </Card>
+      </div>
 
       <h2 className="mb-3 mt-9 text-[1.05rem] font-medium text-ink">What people come to us for</h2>
       <div className="flex flex-wrap gap-2">
@@ -94,19 +80,12 @@ export function Landing({ onStart }: { onStart: (mode: "form" | "chat") => void 
         ))}
       </div>
 
-      <p className="mt-7 text-sm leading-relaxed text-muted">
-        In-network with {CARRIERS.filter((c) => c.id !== "other").map((c) => c.short).join(", ")}.
-        Most people are seen within three days. Some of our providers see patients in Spanish, Hindi, Tamil or German.
-        A short form with your address and history arrives by email after you book.
-      </p>
 
-      <Card className="mt-9 border-tint-lilacInk/15 bg-tint-lilac p-5 sm:p-6">
-        <h2 className="font-serif text-[1.2rem] text-ink">How we think about this</h2>
-        <p className="mt-2.5 text-[0.95rem] leading-relaxed text-tint-lilacInk">
-          Brains work differently — that isn&rsquo;t the thing we&rsquo;re treating. We&rsquo;re here for the parts
-          making life harder than it needs to be: the sleep, the focus, the dread, whatever it is for you.
-        </p>
-      </Card>
+      {/* Reads more like something we mean when it isn't boxed in. */}
+      <p className="mt-9 border-l-2 border-tint-lilacInk/40 pl-4 font-serif text-[1.15rem] leading-relaxed text-ink sm:pl-5 sm:text-[1.25rem]">
+        Brains work differently — that isn&rsquo;t the thing we&rsquo;re treating. We&rsquo;re here for the parts
+        making life harder than it needs to be: the sleep, the focus, the dread, whatever it is for you.
+      </p>
 
       <section className="mt-11" aria-labelledby="voices">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -133,6 +112,28 @@ export function Landing({ onStart }: { onStart: (mode: "form" | "chat") => void 
           Sample reviews for this prototype — written for the demo, not real patients.
         </p>
       </section>
+
+      {/* Logistics, including the two exclusions. They used to sit third from
+          the top, which made "we can't bill Medicare or Medicaid" the second
+          thing a new visitor read; the fit check already catches those
+          patients and hands them real resources. */}
+      <Card className="mt-10 p-5">
+        <h2 className="text-[1.05rem] font-medium text-ink">Good to know</h2>
+        <ul className="mt-3 space-y-2.5">
+          {[
+            `In-network with ${CARRIERS.filter((c) => c.id !== "other").map((c) => c.short).join(", ")}.`,
+            "Most people are seen within three days.",
+            "Some providers see patients in Spanish, Hindi, Tamil or German.",
+            `Adults in ${PRACTICE.stateNames} only, and we can\u2019t bill Medicare or Medicaid. More states are coming \u2014 if that\u2019s you today, we\u2019ll point you somewhere that can help.`,
+            "A short form with your address and history arrives by email after you book.",
+          ].map((line) => (
+            <li key={line} className="flex items-start gap-2.5 text-[0.95rem] leading-relaxed text-muted">
+              <span aria-hidden="true" className="mt-[0.5rem] h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300" />
+              {line}
+            </li>
+          ))}
+        </ul>
+      </Card>
 
       <Button size="lg" onClick={() => onStart("form")} className="mt-9 w-full sm:w-auto">
         Start
