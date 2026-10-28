@@ -4028,81 +4028,81 @@ Where do you want to go next? The open items from earlier:
 > Conversion from start
 > Drop from previous milestone
 > 1. Start
-> /portal/join
+> [assignment route]
 > Page reached
-> 5,898
+> [n]
 > 100.0%
 > 100.0%
 > —
 > 2. Fit check
-> /portal/join/fit
+> [assignment route]
 > Page reached after start
-> 5,490
-> 93.1%
-> 93.1%
+> [n]
+> [pct]
+> [pct]
 > 408 (6.9%)
 > 3. Conditions
-> /portal/join/conditions
+> [assignment route]
 > Page reached after fit check
-> 3,578
-> 65.2%
+> [n]
+> [pct]
 > 60.7%
-> 1,912 (34.8%)
+> [n] ([pct])
 > 4. Insurance
-> /portal/join/insurance
+> [assignment route]
 > Page reached after conditions
-> 3,338
+> [n]
 > 93.3%
-> 56.6%
+> [pct]
 > 240 (6.7%)
 > 5. Needs
-> /portal/join/needs
+> [assignment route]
 > Page reached after insurance
-> 3,095
+> [n]
 > 92.7%
-> 52.5%
+> [pct]
 > 243 (7.3%)
 > 6. Provider match
-> /portal/join/match
+> [assignment route]
 > Match page reached after needs
-> 3,013
+> [n]
 > 97.4%
-> 51.1%
+> [pct]
 > 82 (2.6%)
 > 7. Provider selected
-> /portal/join/match
-> portal.provider_selected after match-page reach
-> 1,909
-> 63.4%
-> 32.4%
-> 1,104 (36.6%)
+> [assignment route]
+> [assignment event] after match-page reach
+> [n]
+> [pct]
+> [pct]
+> [n] ([pct])
 > 8. Reservation created
-> /portal/join/match
-> portal.provider.reservation.created after provider selection
-> 1,764
+> [assignment route]
+> [assignment event] after provider selection
+> [n]
 > 92.4%
-> 29.9%
+> [pct]
 > 145 (7.6%)
 > 9. Patient details
-> /portal/join/patient
+> [assignment route]
 > Page reached after reservation creation
-> 1,763
-> 99.9%
-> 29.9%
+> [n]
+> [pct]
+> [pct]
 > 1 (0.1%)
 > 10. Account created
-> /portal/join/patient
-> portal.onboarding.userCreated after patient-page reach
-> 1,403
-> 79.6%
-> 23.8%
-> 360 (20.4%)
+> [assignment route]
+> [assignment event] after patient-page reach
+> [n]
+> [pct]
+> [pct]
+> 360 ([pct])
 > 11. Payment page
-> /portal/join/payment
+> [assignment route]
 > Page reached after account creation
-> 1,403
+> [n]
 > 100.0%
-> 23.8%
+> [pct]
 > 0 (0.0%)
 >
 > A “reservation created” event is a reservation milestone, not proof of a completed appointment. Likewise, payment-page reach is not proof of successful payment because no dedicated payment-success event was observed on that page.
@@ -4111,38 +4111,38 @@ Where do you want to go next? The open items from earlier:
 > Phase
 > Canonical journey events observed at material volume
 > Instrumentation status
-> /portal/join
+> [assignment route]
 > Start
-> portal.page.join; portal.onboarding.started
-> Page and start explicitly instrumented
-> /portal/join/fit
+> [assignment event]; [assignment event]
+> Page and start instrumented
+> [assignment route]
 > Fit check
-> portal.page.fit_check
-> Page explicitly instrumented; no separate fit-submit event observed
-> /portal/join/conditions
+> [assignment event]
+> Page instrumented; no separate fit-submit event observed
+> [assignment route]
 > Conditions
-> portal.page.join.conditions; portal.onboarding.conditions
-> Page and phase action explicitly instrumented
-> /portal/join/insurance
+> [assignment event]; [assignment event]
+> Page and phase action instrumented
+> [assignment route]
 > Insurance
-> portal.page.join.insurance; portal.onboarding.insurance_selected
-> Page and selection action explicitly instrumented
-> /portal/join/needs
+> [assignment event]; [assignment event]
+> Page and selection action instrumented
+> [assignment route]
 > Needs
-> portal.page.join.needs; portal.onboarding.needs
-> Page and phase action explicitly instrumented
-> /portal/join/match
+> [assignment event]; [assignment event]
+> Page and phase action instrumented
+> [assignment route]
 > Provider match and reservation
-> portal.page.join.match; portal.provider_selected; portal.provider.reservation.created; portal.reschedule_preferences.saved
-> Page, provider selection, reservation creation, and reschedule-preference action explicitly instrumented
-> /portal/join/patient
+> [assignment event]; [assignment event]; [assignment event]; [assignment event]
+> Page, provider selection, reservation creation, and reschedule-preference action instrumented
+> [assignment route]
 > Patient details and account creation
-> portal.page.join.patient; portal.onboarding.userCreated
-> Page and account-creation action explicitly instrumented
-> /portal/join/payment
+> [assignment event]; [assignment event]
+> Page and account-creation action instrumented
+> [assignment route]
 > Payment
-> portal.page.join.payment
-> Page explicitly instrumented; no dedicated payment-success or onboarding-complete event observed
+> [assignment event]
+> Page instrumented; no dedicated payment-success or onboarding-complete event observed
 >
 >
 >
@@ -4186,24 +4186,24 @@ The data is better for you than the assumption was. `DEMO.md` now opens on it, a
 
 **Your assumption graded:**
 
-- **Provider selection — right, and it's the steepest rate in the funnel.** 3,013 reach the match page, 1,104 never pick anyone. 36.6%.
-- **Account creation — real, but smaller than you thought.** 360 sessions, 20.4% of that step, only **8.0% of total loss**.
-- **The fit check — you missed the biggest one.** 1,912 sessions, **42.5% of all loss**, larger than both of yours combined.
+- **Provider selection — right, and it's the steepest rate in the funnel.** [n] reach the match page, [n] never pick anyone. [pct].
+- **Account creation — real, but smaller than you thought.** 360 sessions, [pct] of that step, only **8.0% of total loss**.
+- **The fit check — you missed the biggest one.** [n] sessions, **[pct] of all loss**, larger than both of yours combined.
 
-Those top two steps are **67.1% of everything lost**. Nothing else is close.
+Those top two steps are **[pct] of everything lost**. Nothing else is close.
 
-**But the most important finding isn't a conversion number — it's a measurement gap.** There's no fit-submit event; `/portal/join/fit` has a page view and nothing else. So for those 1,912 sessions you cannot distinguish an Oklahoma resident who was *correctly screened out* from a Texan who was eligible and left. **The biggest number in the funnel is unattributable.** Same problem at the other end: no payment-success event, so 1,403 reach payment and the data stops — true conversion is unknown and ≤23.8%.
+**But the most important finding isn't a conversion number — it's a measurement gap.** There's no fit-submit event; `[assignment route]` has a page view and nothing else. So for those [n] sessions you cannot distinguish an Oklahoma resident who was *correctly screened out* from a Texan who was eligible and left. **The biggest number in the funnel is unattributable.** Same problem at the other end: no payment-success event, so [n] reach payment and the data stops — true conversion is unknown and ≤[pct].
 
 That splits the strategy cleanly, and it's the strongest thing you can say in the demo: **redesign where the cause is knowable, instrument first where it isn't.** Per-point leverage is nearly identical across all three gates (21.5 / 22.1 / 17.6 extra payment reaches), so the ordering comes from *knowability*, not drop size.
 
 **Two findings that validate what you already built, without you having had the data:**
 
-- **Reservation → patient details is 99.9% — one session lost out of 1,764.** The single strongest signal in the dataset. It says the held slot does real commitment work, which is exactly why the prototype holds the time before any account exists.
+- **Reservation → patient details is [pct] — one session lost out of [n].** The single strongest signal in the dataset. It says the held slot does real commitment work, which is exactly why the prototype holds the time before any account exists.
 - **Account created → payment page is 100.0%, zero drop.** Account creation is the last real gate, and every point won there converts 1:1 — making it the cheapest fix, not the biggest.
 
-**And the fit-check finding reframes your off-ramp from a nicety into the highest-volume screen in the product.** For a Texas-only, adults-only, no-Medicare practice, a large share of those 1,912 were correctly turned away — and today that screen does nothing for any of them.
+**And the fit-check finding reframes your off-ramp from a nicety into the highest-volume screen in the product.** For a Texas-only, adults-only, no-Medicare practice, a large share of those [n] were correctly turned away — and today that screen does nothing for any of them.
 
-Sized on stated assumptions: **+34% relative, 23.8% → ~32%**, *with zero recovery assumed at the fit check*. Labelled as arithmetic, not forecast.
+Sized on stated assumptions: **+34% relative, [pct] → ~32%**, *with zero recovery assumed at the fit check*. Labelled as arithmetic, not forecast.
 
 Two things I changed in the script you should know about:
 
@@ -6587,6 +6587,11 @@ Dead code is cheap; the problem is that each of these is where a stated design i
 
 
 <!-- ===== Your notes below this line are preserved when this file is rebuilt ===== -->
+
+
+
+
+
 
 
 
