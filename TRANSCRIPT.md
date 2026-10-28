@@ -1,13 +1,10 @@
 # ClearMind Medical — build conversation
 
-> **Note on this record.** This is the build conversation with the
-> assignment's own funnel tables removed — those were supplied in confidence
-> and aren't mine to pass on, though the analysis built from them is in
-> FUNNEL.md. Personal contact details, local network addresses, an SSH public
-> key and references to unrelated projects are also stripped. The record stops
-> at 17:00 on 27 October.
-> Everything about *this* project is unedited, including the places I got
-> things wrong and had to back them out.
+> **Note on this record.** This is the build conversation for this
+> prototype, start to finish, including the places I got things wrong and had
+> to back them out. Two things are taken out: personal contact details and the
+> addresses of the machine it was built on, and passing references to unrelated
+> projects on that machine. The record stops at 17:00 on 27 October.
 >
 > One exchange is worth reading in full rather than in isolation: at
 > "Check Legion Health website and add some patients testimonies or make it
@@ -285,7 +282,7 @@ The "script" I saw was a one-off command from an earlier session, not a file. Wh
 
 **Claude** — Oct 23, 13:49
 
-Added — and a correction to what I told you: there is no startup script file on the box. What I saw in the process list was a one-off command from an earlier session. The real mechanism is **systemd user units**, which is how `another prototype.service` (8100) survives restarts.
+Added — and a correction to what I told you: there is no startup script file on the box. What I saw in the process list was a one-off command from an earlier session. The real mechanism is **systemd user units**, which is how `another prototype's unit` (8100) survives restarts.
 
 So I created `~/.config/systemd/user/clearmind-medical.service`, mirroring the another prototype unit:
 
@@ -4022,7 +4019,134 @@ Where do you want to go next? The open items from earlier:
 > Just to give you funnel metrics context. This is what is given for this take home assignment "
 >
 >
-> *[The assignment's funnel and instrumentation tables were pasted here. Removed from this copy — the data belongs to whoever set the exercise.]*
+> Important: these are sessions, not verified individual patients. Repeat visits, identity stitching, blocked analytics, and cross-session continuation can affect the counts.
+> Phase
+> Current page or action
+> Milestone used
+> Sessions reaching milestone
+> Conversion from previous milestone
+> Conversion from start
+> Drop from previous milestone
+> 1. Start
+> /portal/join
+> Page reached
+> 5,898
+> 100.0%
+> 100.0%
+> —
+> 2. Fit check
+> /portal/join/fit
+> Page reached after start
+> 5,490
+> 93.1%
+> 93.1%
+> 408 (6.9%)
+> 3. Conditions
+> /portal/join/conditions
+> Page reached after fit check
+> 3,578
+> 65.2%
+> 60.7%
+> 1,912 (34.8%)
+> 4. Insurance
+> /portal/join/insurance
+> Page reached after conditions
+> 3,338
+> 93.3%
+> 56.6%
+> 240 (6.7%)
+> 5. Needs
+> /portal/join/needs
+> Page reached after insurance
+> 3,095
+> 92.7%
+> 52.5%
+> 243 (7.3%)
+> 6. Provider match
+> /portal/join/match
+> Match page reached after needs
+> 3,013
+> 97.4%
+> 51.1%
+> 82 (2.6%)
+> 7. Provider selected
+> /portal/join/match
+> portal.provider_selected after match-page reach
+> 1,909
+> 63.4%
+> 32.4%
+> 1,104 (36.6%)
+> 8. Reservation created
+> /portal/join/match
+> portal.provider.reservation.created after provider selection
+> 1,764
+> 92.4%
+> 29.9%
+> 145 (7.6%)
+> 9. Patient details
+> /portal/join/patient
+> Page reached after reservation creation
+> 1,763
+> 99.9%
+> 29.9%
+> 1 (0.1%)
+> 10. Account created
+> /portal/join/patient
+> portal.onboarding.userCreated after patient-page reach
+> 1,403
+> 79.6%
+> 23.8%
+> 360 (20.4%)
+> 11. Payment page
+> /portal/join/payment
+> Page reached after account creation
+> 1,403
+> 100.0%
+> 23.8%
+> 0 (0.0%)
+>
+> A “reservation created” event is a reservation milestone, not proof of a completed appointment. Likewise, payment-page reach is not proof of successful payment because no dedicated payment-success event was observed on that page.
+> Current page and event instrumentation
+> Current page
+> Phase
+> Canonical journey events observed at material volume
+> Instrumentation status
+> /portal/join
+> Start
+> portal.page.join; portal.onboarding.started
+> Page and start explicitly instrumented
+> /portal/join/fit
+> Fit check
+> portal.page.fit_check
+> Page explicitly instrumented; no separate fit-submit event observed
+> /portal/join/conditions
+> Conditions
+> portal.page.join.conditions; portal.onboarding.conditions
+> Page and phase action explicitly instrumented
+> /portal/join/insurance
+> Insurance
+> portal.page.join.insurance; portal.onboarding.insurance_selected
+> Page and selection action explicitly instrumented
+> /portal/join/needs
+> Needs
+> portal.page.join.needs; portal.onboarding.needs
+> Page and phase action explicitly instrumented
+> /portal/join/match
+> Provider match and reservation
+> portal.page.join.match; portal.provider_selected; portal.provider.reservation.created; portal.reschedule_preferences.saved
+> Page, provider selection, reservation creation, and reschedule-preference action explicitly instrumented
+> /portal/join/patient
+> Patient details and account creation
+> portal.page.join.patient; portal.onboarding.userCreated
+> Page and account-creation action explicitly instrumented
+> /portal/join/payment
+> Payment
+> portal.page.join.payment
+> Page explicitly instrumented; no dedicated payment-success or onboarding-complete event observed
+>
+>
+>
+> "
 
 **Claude** — Oct 27, 10:31
 
@@ -4062,22 +4186,22 @@ The data is better for you than the assumption was. `DEMO.md` now opens on it, a
 
 **Your assumption graded:**
 
-- **Provider selection — right, and it's the steepest rate in the funnel.** [n] reach the match page, [n] never pick anyone. 36.6%.
+- **Provider selection — right, and it's the steepest rate in the funnel.** 3,013 reach the match page, 1,104 never pick anyone. 36.6%.
 - **Account creation — real, but smaller than you thought.** 360 sessions, 20.4% of that step, only **8.0% of total loss**.
-- **The fit check — you missed the biggest one.** [n] sessions, **42.5% of all loss**, larger than both of yours combined.
+- **The fit check — you missed the biggest one.** 1,912 sessions, **42.5% of all loss**, larger than both of yours combined.
 
 Those top two steps are **67.1% of everything lost**. Nothing else is close.
 
-**But the most important finding isn't a conversion number — it's a measurement gap.** There's no fit-submit event; `[assignment route]` has a page view and nothing else. So for those [n] sessions you cannot distinguish an Oklahoma resident who was *correctly screened out* from a Texan who was eligible and left. **The biggest number in the funnel is unattributable.** Same problem at the other end: no payment-success event, so [n] reach payment and the data stops — true conversion is unknown and ≤23.8%.
+**But the most important finding isn't a conversion number — it's a measurement gap.** There's no fit-submit event; `/portal/join/fit` has a page view and nothing else. So for those 1,912 sessions you cannot distinguish an Oklahoma resident who was *correctly screened out* from a Texan who was eligible and left. **The biggest number in the funnel is unattributable.** Same problem at the other end: no payment-success event, so 1,403 reach payment and the data stops — true conversion is unknown and ≤23.8%.
 
 That splits the strategy cleanly, and it's the strongest thing you can say in the demo: **redesign where the cause is knowable, instrument first where it isn't.** Per-point leverage is nearly identical across all three gates (21.5 / 22.1 / 17.6 extra payment reaches), so the ordering comes from *knowability*, not drop size.
 
 **Two findings that validate what you already built, without you having had the data:**
 
-- **Reservation → patient details is 99.9% — one session lost out of [n].** The single strongest signal in the dataset. It says the held slot does real commitment work, which is exactly why the prototype holds the time before any account exists.
+- **Reservation → patient details is 99.9% — one session lost out of 1,764.** The single strongest signal in the dataset. It says the held slot does real commitment work, which is exactly why the prototype holds the time before any account exists.
 - **Account created → payment page is 100.0%, zero drop.** Account creation is the last real gate, and every point won there converts 1:1 — making it the cheapest fix, not the biggest.
 
-**And the fit-check finding reframes your off-ramp from a nicety into the highest-volume screen in the product.** For a Texas-only, adults-only, no-Medicare practice, a large share of those [n] were correctly turned away — and today that screen does nothing for any of them.
+**And the fit-check finding reframes your off-ramp from a nicety into the highest-volume screen in the product.** For a Texas-only, adults-only, no-Medicare practice, a large share of those 1,912 were correctly turned away — and today that screen does nothing for any of them.
 
 Sized on stated assumptions: **+34% relative, 23.8% → ~32%**, *with zero recovery assumed at the fit check*. Labelled as arithmetic, not forecast.
 
@@ -6463,6 +6587,7 @@ Dead code is cheap; the problem is that each of these is where a stated design i
 
 
 <!-- ===== Your notes below this line are preserved when this file is rebuilt ===== -->
+
 
 
 
