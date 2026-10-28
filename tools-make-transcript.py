@@ -98,6 +98,28 @@ def clean_user(text):
     text = re.sub(r"</pasted_content>", "", text)
     return redact(text.strip())
 
+# Everything at or after this local time is left out of the record. Set to
+# None to record the whole session again. The cutoff has to be applied here, at
+# generation time: a Stop hook rebuilds this file after every turn, so trimming
+# the file by hand is reverted within the minute.
+CUTOFF = "2026-10-27 17:00"
+
+
+def after_cutoff(rec):
+    """True when this record falls on or after the cutoff."""
+    if not CUTOFF:
+        return False
+    t = rec.get("timestamp")
+    if not t:
+        return False
+    try:
+        when = datetime.datetime.fromisoformat(t.replace("Z", "+00:00")).astimezone()
+        limit = datetime.datetime.fromisoformat(CUTOFF).astimezone()
+    except Exception:
+        return False
+    return when >= limit
+
+
 def ts(rec):
     t = rec.get("timestamp")
     if not t:
@@ -158,7 +180,7 @@ with open(SRC) as f:
             r = json.loads(line)
         except Exception:
             continue
-        if r.get("type") in ("user", "assistant"):
+        if r.get("type") in ("user", "assistant") and not after_cutoff(r):
             records.append(r)
 
 turns = []          # [{"who","text","time","actions":[...]}]
