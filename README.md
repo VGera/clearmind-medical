@@ -1,223 +1,207 @@
-# ClearMind Medical — patient onboarding flow
+# ClearMind Medical
 
-Virtual psychiatry practice: **adults only, Texas only, no Medicare/Medicaid**.
-Next.js prototype on **port 8101**.
+Patient onboarding for a virtual psychiatry practice — adults, Texas only, and
+unable to bill Medicare or Medicaid.
 
-```bash
-npm run dev          # next dev -p 8101 -H 0.0.0.0
-npm run build && npm start
-systemctl --user restart clearmind-medical   # the unit that keeps it up
-```
-Local: http://localhost:8101 · LAN: http://<lan-ip>:8101 (substitute this machine's address)
-From a phone: `sudo ufw allow 8101/tcp` first.
+A working prototype of the whole journey: finding out whether the practice can
+see you, saying what's going on, choosing a clinician, booking, paying, and then
+the returning-patient portal where the care actually happens.
 
-## The flow: 8 phases, 6 screens
+---
 
-| Phase (as specified) | Screen |
-|---|---|
-| 1. Start / acquisition | **Landing** |
-| 2. Fit check + 4. Insurance | **Fit check** — state, age, carrier |
-| 3. Conditions + 5. Needs | **Your care** — chips, free-text, needs |
-| 6. Find match + reservation | **Your match** — recommended / soonest / find more + 15-min hold |
-| 7. Patient details | **Your account** |
-| 8. Payment | **Payment** → confirmation |
+## What the funnel said
 
-Insurance merges into the fit check because *which plan* is itself a fit
-question. Conditions, the description, and what-kind-of-help are one thought, so
-they're one screen. Three screens before anyone sees a provider.
+The redesign started from the practice's own instrumentation rather than from
+taste. Of every hundred people who begin, fewer than twenty-four reach the
+payment page — and **two steps account for two-thirds of everyone lost**.
 
-## Designed for someone with no bandwidth
+The steepest is **choosing a clinician**. Almost everyone who finishes the
+earlier questions arrives at the provider page; more than a third of them then
+pick nobody. The page isn't hard to reach. It's hard to act on.
 
-Patients using this may be depressed, anxious, or in crisis. So:
+The largest is the **fit check**, the very first question. It loses more people
+than any other step in the funnel.
 
-- One question per section, short labels, helper text only where its absence
-  would cause a mistake.
-- Progressive reveal — the next question appears when the last one is answered.
-- Two headline provider cards, not six. Everything else behind **Find more**.
-- Cost stated (**$0 today**) before the card fields.
-- The two hard limits are on the landing page, before anyone invests effort.
+**I had assumed the problems were provider selection and account creation.**
+Provider selection was right, and it's the steepest rate in the whole funnel.
+Account creation is real but far smaller than I thought — worth fixing, not the
+headline. The fit check, which I hadn't suspected at all, is bigger than both of
+my guesses combined.
 
-## HTTPS (and therefore the microphone)
+## The most important finding isn't a conversion number
 
-Browsers expose `navigator.mediaDevices` only on a **secure context** —
-`https://` or `localhost`. Over `http://<lan-ip>:8101` the
-`SpeechRecognition` constructor still exists but the microphone does not, so
-the app checks `window.isSecureContext`, hides the mic, and says why.
+**There is no event recording what someone answered at the fit check** — only
+that the page was seen. So for the single largest drop in the funnel, it is
+impossible to tell apart:
 
-A Caddy sidecar terminates TLS on **8443** and proxies to the app, which stays
-on 8101:
+- someone out of state who was **correctly** turned away — a success for the
+  practice, and a person who still needs care; from
+- someone eligible who simply left.
 
-```
-https://<lan-ip>:8443      <- use this; microphone works
-http://<lan-ip>:8101       <- still there; microphone hidden
-```
+The biggest number in the funnel is unattributable. For a practice restricted to
+one state, to adults, and to commercial insurance, a large share of that loss
+is almost certainly people it was never able to serve — which means a big part
+of the "biggest leak" isn't a leak, and the headline conversion rate is measured
+against a denominator full of people who were never addressable.
 
-```bash
-systemctl --user status clearmind-https     # the sidecar
-sudo ufw allow 8443/tcp                     # before testing from a phone
-```
+Two more gaps sit at the other end: nothing records a **successful payment**,
+and nothing records that a patient was **actually seen**. The funnel's reported
+finish line is not an outcome.
 
-The certificate is self-signed and **not committed** — neither half of it is,
-since a cert pins the addresses of one particular machine. Generate your own:
+That split the strategy, and it's the thing I'd most want to be judged on:
+**redesign where the cause is knowable, instrument first where it isn't.**
+Per recovered percentage point the three main gates are worth about the same, so
+the ordering comes from how well each cause is understood, not from the size of
+each drop.
 
-```bash
-# add your LAN address as IP.2 in deploy/tls/san.cnf first
-openssl req -x509 -newkey rsa:2048 -nodes -days 800 \
-  -keyout deploy/tls/key.pem -out deploy/tls/cert.pem -config deploy/tls/san.cnf
-```
-Browsers will warn once — **Advanced → Proceed** — after which the origin is a
-real secure context and the mic works. To silence the warning, trust
-`deploy/tls/cert.pem` on the device: on macOS, drag it into Keychain Access
-→ System and set it to *Always Trust*; on iOS, mail it to yourself, install
-the profile, then enable it under Settings → General → About → Certificate
-Trust Settings.
+## Two findings that decided the design on their own
 
-Regenerate it the same way if the LAN address changes.
+**Holding a time works.** Once someone has reserved a slot, essentially nobody
+is lost before the details screen — one session in well over a thousand. It is
+the strongest single signal in the data, and it says the reservation is doing
+real commitment work. So the time is held **before any account exists**.
 
-## Voice: dictation only## Voice: dictation only
+**Account creation is the last real gate.** Everyone who creates an account
+reaches the payment page; there is nothing between the two to fix. That makes it
+the cheapest place to win, because every point recovered converts one for one.
 
-The microphone is for **typing free text**, in the two places where typing is
-the hard part:
+---
 
-- the "what's been going on" field (`DictateTextarea`)
-- the chat composer
+## The decisions
 
-Both keep listening through a pause (`continuous`), so someone who stops to
-collect themselves isn't cut off. Names, dates and card numbers are typed.
-`?novoice=1` disables the microphone entirely.
+**Eight phases became five steps.** Three of the old page-to-page hops were
+losing people to navigation alone, before anyone had been asked anything
+difficult.
 
-**The app does not speak.** Read-aloud was built and then removed: which voices
-a device offers ranges from warm to robotic with no way to guarantee which — a
-Linux box has only eSpeak, hundreds of flat synthetic variants — and a machine
-voice reading intake questions to someone in a depressive episode is worse than
-silence. Choices are tapped, not spoken; tapping a chip was never the hard part.
+**Two clinicians, not a directory.** One recommended against what the patient
+just said, one who can see them soonest, and everyone else behind *Find more*.
+Each card is a few lines; the longer biography sits behind *About*, because six
+paragraphs of prose at the exact moment of choosing is how a decision gets
+deferred. These patients are the least equipped population to absorb choice
+overload.
 
-If a genuinely warm voice is wanted later, the honest route is a cloud voice
-(OpenAI TTS `shimmer`/`nova`) behind an env var, not browser speech synthesis.
+**Nothing is ever forced.** Every question can be skipped or answered badly, and
+the flow accepts it and moves on. No question loops. For someone anxious or
+easily derailed, a screen that won't let you past is the moment the tab closes.
 
-## Two doors, one intake
+**No password.** A code to your phone for a new patient, a code or an emailed
+link for a returning one. One less thing to fail at, and the right default for
+an audience with memory and attention difficulties.
 
-The form and the chatbot (**Mira**) write to the same state — switch mid-flow
-and nothing is re-asked. Mira fills several slots from one sentence.
+**The clinical intake comes later.** Address, pharmacy, history and emergency
+contact aren't needed to hold an appointment, so they arrive by email after
+booking. A half-finished form then costs a form, not the appointment.
 
-## Verified Inc. integration (mocked)
+**Insurance is answered by lookup, not from the card.** Coverage and cost are
+the real objection, so the flow resolves the plan and shows a genuine copay
+rather than an estimate. The identity typed once is reused, so the details
+screen arrives already filled in.
 
-**1-Click Verify + 1-Click Health**, mocked in `src/lib/verified/` against the
-documented response shapes, so the real SDK is a swap in `mock.ts` only.
+**Nothing is charged during onboarding.** The card is kept and billed after the
+visit. Since the funnel has no payment-success event, a charge is a dark spot in
+the data; decoupling it removes the dark spot as a gate.
 
-**Insurance discovery** replaces the carrier guess. Three fields — first name,
-last name, date of birth — return `payer.name`, `memberId`, `isMedicare` and
-`coverageTypes`. Those same three fields go on the chart, so the details screen
-is prefilled rather than asking twice. Manual entry sits beside it the whole
-time: about one in five adults aren't found, so it's a path, not a failure.
+**Crisis support is additive and never a gate.** Help is on every screen, and
+disclosing something frightening never blocks, flags or reroutes the
+appointment. What the patient wrote is kept, and they are thanked for it.
 
-**Real-time eligibility** replaces the invented "$25–$45". `benefits[]` gives
-`copay`, `deductible` (with `remaining`) and `coinsurance`; `network.status`
-gives in/out-of-network; `coverageStatus` catches a lapsed plan. The payment
-screen states a real number and says it isn't an estimate.
+**Dictation in, nothing spoken out.** A microphone where someone has to write
+prose. No synthesised voice — a site that talks at you is patronising.
 
-**Exclusions become data.** `isMedicare` and a Medicaid payer-name match route
-to the resources page instead of relying on self-report — Medicare Advantage
-often reads as commercial to a patient. Texas patients blocked only by payer
-still get the direct-pay offer.
+**Every exclusion has a staffed exit.** Out of state, under 18, Medicare,
+Medicaid: all land on named, working resources rather than an error. Where the
+practice genuinely can still help by other means, that route is offered on the
+same screen as the bad news, not hidden behind the way out.
 
-**1-Click Verify** replaces the OTP step with the documented waterfall:
-autofill (carrier returns the number, nothing typed) → silent (typed number
-confirmed without an SMS) → SMS code. All three render; none is treated as the
-real one, and the code path is always reachable.
+**Onboarding ends at the first visit, not at the payment.** Hence the portal:
+upcoming and past visits, joining, moving or cancelling an appointment,
+messaging, medications, and a visible plan for the first ninety days.
 
-Test users are keyed on last name + date of birth — see the header comment in
-`src/lib/verified/mock.ts` for the full list (BCBS, UHC, Aetna, a two-plan
-Cigna/Oscar case, Medicare Advantage, Medicaid STAR, an inactive plan, and
-anything else for the not-found path).
+**Moving an appointment is the pressure valve on cancelling**, since most people
+who cancel only have a problem with the time. The existing appointment is held
+until a new one is confirmed — including when the patient wants a different
+clinician, which gets the same two-card treatment as booking.
 
-Not wired, and needed for production: a Verified account and API keys, the
-practice NPI (eligibility is submitted as the provider), a HIPAA BAA, and a
-check that all five payers support eligibility checks in Texas.
+---
 
-## Off-ramps (never a dead end)
+## The trade-offs
 
-Out of state, under 18, Medicare, or Medicaid routes to `CareElsewhere`, which
-names the reason as a licensing or billing limit rather than a judgment, then
-lists **988**, the **SAMHSA National Helpline** (1-800-662-4357),
-**FindTreatment.gov**, and the **Psychology Today** directory — plus pediatric
-routing for minors and a "tell me when you open here" capture for out-of-state.
+**Insurance was moved earlier, into the step with the biggest drop.** This is
+the one place where load was added to the weakest point in the funnel, and it's
+the change I'd watch hardest. The reasoning: finding out at step four that the
+practice can't bill your plan wastes everyone's time, the patient's most of all.
+It also replaces three page loads with one screen that reveals itself as you go.
 
-Texas patients blocked only by payer are offered direct-pay with the price shown
-($249 intake / $129 follow-up) alongside the covered options.
+**Two recommendations instead of the full list.** Choice overload is the failure
+mode being addressed, but some people genuinely want to compare everyone, and
+for them an extra tap is a cost. Whether two is the right number is measurable,
+and it's the main risk in the redesign.
 
-## Safety
+**The fit check was deliberately left alone**, despite being the largest loss.
+Redesigning against a number nobody can interpret is guessing. It was
+instrumented instead, and in the meantime designed for the most likely
+explanation — that many of those people are legitimately ineligible — which is
+what the resources page is for.
 
-988 sits in a quiet strip on every screen. The symptom field and the chat both
-scan for self-harm language (`detectCrisis`) — including the curly apostrophe
-iOS substitutes, which is how most phones actually type "don't".
+**The after-visit summary leaves out the clinician's own notes.** For
+psychiatric care that is a deliberate protection rather than an omission, so the
+screen says so plainly and explains how to get them, rather than quietly
+withholding.
 
-On a hit the chat **stops asking intake questions**, puts 988, 911 and the
-practice's own number on screen, and waits for an explicit "I'm okay to keep
-going". The disclosure is kept verbatim in `symptoms` regardless of which
-question was being asked, and `crisisDisclosed` carries it to the confirmation
-screen. It never blocks the path to care.
+**One messaging channel rather than a button per task.** Refills go through the
+conversation, because a controlled medication can't be reissued by tapping a
+button and a button that silently fails is worse than no button. The cost is
+that the patient has to write a sentence.
 
-The practice only promises what it controls: a nurse reads the intake before the
-visit, and there's a number to call. No "within one business day".
+**Patients who can't be billed are still offered a direct-pay route** — and told
+to go and check whether a covered option costs less. That sentence loses the
+practice some revenue. It buys more trust than it costs.
 
-## Found on the web
+**Identity and eligibility are simulated, not connected.** The product
+evaluation was the deliverable: of the three available products, the one chosen
+is the only one that answers identity *and* coverage *and* cost in a single ask,
+because cost is the real objection. Swapping the simulation for the live service
+is a plumbing change, not a redesign.
 
-Search terms live where they cost the patient nothing: the title tag, meta
-description, `MedicalBusiness` JSON-LD, the condition chips, one keyword-bearing
-line under the headline, and a plain-prose footer naming the practice,
-specialty, state, and conditions. No keyword-stuffed body copy.
+---
 
-## Code map
+## What I'd instrument first
 
-```
-src/lib/types.ts    intake state, blocker rules
-src/lib/data.ts     QUESTIONS (on screen) + SPOKEN (voice), options, providers, resources
-src/lib/parse.ts    spoken/typed answer matching, crisis detection, dictation cleanup
-src/lib/match.ts    provider scoring; recommended / soonest / rest
-src/lib/voice.tsx   Web Speech provider, warm-voice selection, useAutoRead
-src/components/     Shell, VoiceBits, Chat, CareElsewhere, DesignNotes, ui
-src/components/steps/  Landing, FitCheck, Care, Match, Account, Payment, Done
-```
+1. **What the fit check was answered with, and why someone stopped** —
+   eligible, out of state, under 18, excluded payer, abandoned. Until this
+   exists, the largest share of all loss cannot be interpreted, and nobody can
+   say whether the biggest number in the funnel is a problem or a filter working
+   correctly.
+2. **A successful payment**, so the funnel ends at an outcome instead of a page.
+3. **A visit actually attended** — the real definition of an onboarded patient.
+4. **Patient-level identity**, so someone deliberating across several visits
+   stops looking like someone who gave up.
+5. **Whether anyone opens *Find more***, which answers the one open question in
+   this redesign directly.
 
-`Design notes (for reviewers)` in the footer opens the design-rationale panel.
+Sized on stated assumptions, the changes here are worth roughly a third more
+patients reaching the end — while assuming **zero** recovery at the fit check,
+because that part isn't yet understood. That figure is arithmetic to size the
+bet, not a forecast.
 
-## Deploying over an open tab
+---
 
-Next serves a statically prerendered page with `s-maxage=31536000,
-stale-while-revalidate` by default. Every `next build` gives the JS chunks new
-hashed filenames, so a browser holding that cached document asks for files the
-new build deleted — a client-side exception that an ordinary reload cannot fix,
-because the reload re-serves the same cached HTML.
+## Reading the numbers honestly
 
-`next.config.js` now sends `no-store` for the document (hashed assets under
-`/_next/static` keep their immutable caching), and `src/app/error.tsx` recovers
-by reloading once with a cache-busting query param rather than
-`location.reload()`. The error screen keeps 988 and the practice number visible
-and shows the real message under "Technical detail" — an error page is still a
-care surface for this audience.
+The source data counts **sessions, not people**. Repeat visits, blocked
+analytics and continuing on another device all inflate the denominators.
 
-## Reviewed
+Provider selection is the step most exposed to this, because choosing a
+psychiatrist is exactly the decision someone sleeps on. Its drop should be read
+as an upper bound on real abandonment. That doesn't weaken the conclusion — if
+people leave to think and come back, it's still a decision-support failure — but
+it isn't the number of people who gave up.
 
-Two critique passes (clinical/requirements, and mobile/a11y/SEO) ran against
-this build; their findings are applied. Notable ones worth knowing about:
+---
 
-- `detectCrisis` failed on smart apostrophes — i.e. on most phones. Fixed and
-  verified against real phrasings.
-- A disclosure bundled with a condition word ("I'm depressed and I want to die")
-  was being dropped from the record entirely.
-- Read-aloud cancelled each line of a chat turn after ~1.5s, truncating crisis
-  replies mid-word. Utterances now queue.
-- "I'm not 18" read as *yes* on the voice path. Negated and approximate ages now
-  re-ask instead.
-- Auto-read only spoke the first question on each screen; it now follows the
-  question that's live.
-- `text-faint` (#8a979f) failed WCAG AA at every size it was used, including
-  "We can't bill Medicare" and the 988 qualifier. Collapsed into `muted`.
+## Status
 
-**Known gap:** there is one route. Condition and insurance landing pages
-(`/adhd`, `/insurance/blue-cross-blue-shield`, `/providers/[id]`) are where
-search traffic for a single-state practice actually lives, and they don't exist
-yet. The funnel copy shouldn't absorb that job — see the design notes.
-
-Fictional providers. No real accounts, appointments, or charges.
+A prototype. The clinicians, appointments, medications, messages and reviews are
+fictional, and the sample reviews are labelled as such on the page. Identity,
+insurance and payment are simulated. Nothing here is a medical device, and
+nothing in it constitutes medical advice.
