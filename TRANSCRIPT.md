@@ -1,9 +1,11 @@
 # ClearMind Medical — build conversation
 
 > **Note on this record.** This is the build conversation with the
-> assignment's own funnel data removed — that table was supplied to me in
-> confidence and isn't mine to pass on. Personal contact details, local
-> network addresses and references to unrelated projects are also stripped.
+> assignment's own funnel tables removed — those were supplied in confidence
+> and aren't mine to pass on, though the analysis built from them is in
+> FUNNEL.md. Personal contact details, local network addresses, an SSH public
+> key and references to unrelated projects are also stripped. The record stops
+> at 17:00 on 27 October.
 > Everything about *this* project is unedited, including the places I got
 > things wrong and had to back them out.
 >
@@ -3910,7 +3912,74 @@ Desktop is still a narrow column in a 1280px window — the hero is 452px with t
 
 ---
 
-*[One exchange about preparing a live walkthrough is omitted: it isn't part of the deliverable.]*
+## 39. Vijeta — Oct 27, 10:12
+
+> Now create me script for demo that I can demo with decisions I made (assumptions from current funnel metrics-users drop offs at provider selection at account creation, design decision -mobile responsive, integrations considers (verified -1-click verify and 1-click Health), psychoiatry patients in mind while designing the flow, building the portal for returing patients and i-stop to seek help from CLearMind providers) etc. The demo need to be under 4-5min only.
+
+**Claude** — Oct 27, 10:12
+
+Let me pull the exact demo-able facts so the script's claims are accurate.
+
+---
+
+**Claude** — Oct 27, 10:13
+
+Now the demo script. One honesty note I'll build in: the funnel drop-off figures are your *assumptions*, so the script states them as such with blanks for real numbers if you have them.
+
+<details>
+<summary>Actions taken (7)</summary>
+
+- Bash: Gather demo facts: flow, pricing, test users
+- Bash: Gather lookup, off-ramp, and portal demo facts
+- Bash: Find the insurance lookup component
+- Bash: Find lookup inputs in FitCheck
+- Bash: Read the insurance lookup section
+- Bash: Find the autofill form inputs
+- Bash: Payment and Done screen beats
+
+</details>
+
+---
+
+**Claude** — Oct 27, 10:15
+
+`DEMO.md` is in the repo — 4:30, read-aloud, with `[SAY]` / `[DO]` lines and cumulative timings so you can tell mid-demo whether you're long.
+
+**The beats and the decision each one carries:**
+
+| Time | Beat | Decision on the record |
+|---|---|---|
+| 0:00 | Frame + your two drop-off assumptions | phone-first was the *starting* width, not a port |
+| 0:30 | Fit check → Verified lookup | 1-Click Health over Verify/Signup — it's the only one that also answers "am I covered, what does it cost" |
+| 1:10 | Conditions, chips, mic, 988 strip | never force an answer; dictation in, no speech out; crisis help is additive, never a gate |
+| 1:55 | **Drop-off #1** — two cards, not a directory | recommended + soonest, rest behind Find more, slot held before any account exists |
+| 2:35 | **Drop-off #2** — details + payment | no password, verification folded into the same screen, clinical intake deferred to an emailed form |
+| 3:05 | Portal | one place to get help between visits; clinical note withheld on purpose; reschedule holds the old visit until confirmed |
+| 3:55 | Off-ramp | every exclusion has a staffed exit, not an error |
+| 4:20 | Close | what you'd instrument next |
+
+**Three things worth knowing before you run it:**
+
+1. **Prep takes 2 minutes and the script won't work without it** — three tabs (landing, portal *already signed in*, and a clean fit check for the off-ramp), a ~400px window, and `Ada / Lovelace / 1990-05-05` on a sticky note. Signing into the portal live costs 20 seconds you don't have, and a wrong DOB kills the Verified beat.
+
+2. **The funnel numbers are stated as your assumptions, out loud.** The script has you say "I started from two assumptions" and leaves `__%` blanks if you have real figures. There's also a prepared answer for "how do you know the drop-off is there?" — *"I don't; it's the thing I'd instrument first. The design is a hypothesis about it, not a conclusion from it."* That's a stronger position in an interview than implying data you don't have.
+
+3. **There's a hard cut list** for when you're over at the 2:30 mark, in the order to cut. The off-ramp is last to go, and if it does go, there's a one-sentence replacement for the close so you don't lose the point entirely.
+
+Also included: an overflow list (chat path, video visit, care plan) if you get 90 more seconds, and five anticipated questions with short answers — including "is Verified actually integrated?" → *mocked to their documented field shapes; I did the product evaluation, not the wiring.*
+
+Two claims I corrected after checking the code: the cards carry the bio plus up to two scored reasons (not four bullets), and the off-ramp lists four resources including Psychology Today.
+
+<details>
+<summary>Actions taken (3)</summary>
+
+- Bash: Write and commit the demo script
+- Bash: Verify the off-ramp resource list
+- Bash: Fix two inaccurate claims and commit
+
+</details>
+
+---
 
 ## 40. Vijeta — Oct 27, 10:25
 
@@ -3976,7 +4045,7 @@ The data mostly backs you, but with one big correction. Writing up the analysis,
 
 **Claude** — Oct 27, 10:32
 
-Now the funnel write-up, built on the real numbers.
+Now the demo script's opening and close, rebuilt on the real numbers.
 
 <details>
 <summary>Actions taken (1)</summary>
@@ -3989,7 +4058,7 @@ Now the funnel write-up, built on the real numbers.
 
 **Claude** — Oct 27, 10:33
 
-The data is better for you than the assumption was. `FUNNEL.md` carries the analysis.
+The data is better for you than the assumption was. `DEMO.md` now opens on it, and `FUNNEL.md` carries the analysis.
 
 **Your assumption graded:**
 
@@ -4001,7 +4070,7 @@ Those top two steps are **67.1% of everything lost**. Nothing else is close.
 
 **But the most important finding isn't a conversion number — it's a measurement gap.** There's no fit-submit event; `[assignment route]` has a page view and nothing else. So for those [n] sessions you cannot distinguish an Oklahoma resident who was *correctly screened out* from a Texan who was eligible and left. **The biggest number in the funnel is unattributable.** Same problem at the other end: no payment-success event, so [n] reach payment and the data stops — true conversion is unknown and ≤23.8%.
 
-That splits the strategy cleanly, and it's the strongest thing the data supports: **redesign where the cause is knowable, instrument first where it isn't.** Per-point leverage is nearly identical across all three gates (21.5 / 22.1 / 17.6 extra payment reaches), so the ordering comes from *knowability*, not drop size.
+That splits the strategy cleanly, and it's the strongest thing you can say in the demo: **redesign where the cause is knowable, instrument first where it isn't.** Per-point leverage is nearly identical across all three gates (21.5 / 22.1 / 17.6 extra payment reaches), so the ordering comes from *knowability*, not drop size.
 
 **Two findings that validate what you already built, without you having had the data:**
 
@@ -4012,12 +4081,15 @@ That splits the strategy cleanly, and it's the strongest thing the data supports
 
 Sized on stated assumptions: **+34% relative, 23.8% → ~32%**, *with zero recovery assumed at the fit check*. Labelled as arithmetic, not forecast.
 
+Two things I changed in the script you should know about:
 
+1. **Runtime went 4:30 → 4:45.** The opening is now 45 seconds because the data is worth that. The hard cut list still gets you back under if you're long at the details screen.
+2. **I added a Q&A answer for the risk in your own design:** you moved insurance *into* the fit check — the step with the biggest drop. That's the one place you added load to the weakest step, and someone will catch it. The prepared answer owns it as the change you'd watch hardest, with the reason (coverage and cost are the real objection) and the mitigation (one scrolling screen replacing three page loads that cost 6.9% + 6.7% + 7.3% to navigation alone).
 
 <details>
 <summary>Actions taken (3)</summary>
 
-- Bash: Rewrite the funnel write-up around the real numbers
+- Bash: Rewrite the demo script around the real numbers
 - Bash: Fix timings and refresh the Q&A section
 - Bash: Commit the data-driven demo and funnel analysis
 
@@ -4500,7 +4572,7 @@ t2 needs a fixture inside the join window (it was written against a temporary va
 
 **Claude** — Oct 27, 12:18
 
-Two things the tests exposed: the device check has the same combined-request flaw, and **the fixture never opens the join window** — so the video visit isn't reachable at all, which no walkthrough of the product could have shown.
+Two things the tests exposed: the device check has the same combined-request flaw, and **the fixture never opens the join window** — so the video visit isn't reachable at all, which also breaks my demo script.
 
 <details>
 <summary>Actions taken (2)</summary>
@@ -4602,7 +4674,7 @@ Only failure is t4's "exactly one upcoming visit" — now two by design. Updatin
 
 **Claude** — Oct 27, 12:27
 
-All suites pass.
+All suites pass. Updating the demo script, since the video visit is now actually reachable.
 
 <details>
 <summary>Actions taken (2)</summary>
@@ -4634,7 +4706,7 @@ All fixed and verified. Five suites pass; the one agent test that failed (`t2-ca
 
 **Two things the testing itself turned up, which no agent reported:**
 
-1. **The video visit was unreachable.** The only upcoming visit was 26 hours out, so the join window never opened — meaning the product could not demonstrate its own core screen. Fixed with a visit starting now, at offset `0` rather than a small one, because `resolveSlot`'s 20-minute rounding pushes a "+8 minutes" visit to 17 minutes out and closes the 15-minute window again. 
+1. **The video visit was unreachable.** The only upcoming visit was 26 hours out, so the join window never opened — meaning my own demo script told you to join a visit you couldn't join. Fixed with a visit starting now, at offset `0` rather than a small one, because `resolveSlot`'s 20-minute rounding pushes a "+8 minutes" visit to 17 minutes out and closes the 15-minute window again. `DEMO.md` is updated.
 2. **My session-persistence fix broke my own test harness** — each scenario was inheriting the previous one's answers, which produced five false failures I nearly chased as code bugs. Clearing storage between scenarios turned them all green.
 
 Also worth knowing: the resource list led with **988 for everyone**, so Rosa — asking for a psychiatrist for panic attacks — got a suicide hotline as item one and the directory she wanted as item four. Directories lead now, deep-linked to her state (`/us/psychiatrists/oklahoma`), with 988 as its own card. It's still in the header strip on every screen, so leading with it bought nothing.
@@ -4644,7 +4716,7 @@ What the agents verified as working, which I re-ran and holds: the reschedule ho
 <details>
 <summary>Actions taken (2)</summary>
 
-- Bash: Update the notes for the reachable video visit
+- Bash: Update the demo script for the reachable video visit
 - Bash: Commit all the fixes
 
 </details>
@@ -6391,6 +6463,9 @@ Dead code is cheap; the problem is that each of these is where a stated design i
 
 
 <!-- ===== Your notes below this line are preserved when this file is rebuilt ===== -->
+
+
+
 
 
 
