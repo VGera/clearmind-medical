@@ -8,7 +8,7 @@ npm run dev          # next dev -p 8101 -H 0.0.0.0
 npm run build && npm start
 systemctl --user restart clearmind-medical   # the unit that keeps it up
 ```
-Local: http://localhost:8101 · LAN: http://192.168.53.2:8101
+Local: http://localhost:8101 · LAN: http://<lan-ip>:8101 (substitute this machine's address)
 From a phone: `sudo ufw allow 8101/tcp` first.
 
 ## The flow: 8 phases, 6 screens
@@ -40,7 +40,7 @@ Patients using this may be depressed, anxious, or in crisis. So:
 ## HTTPS (and therefore the microphone)
 
 Browsers expose `navigator.mediaDevices` only on a **secure context** —
-`https://` or `localhost`. Over `http://192.168.53.2:8101` the
+`https://` or `localhost`. Over `http://<lan-ip>:8101` the
 `SpeechRecognition` constructor still exists but the microphone does not, so
 the app checks `window.isSecureContext`, hides the mic, and says why.
 
@@ -48,8 +48,8 @@ A Caddy sidecar terminates TLS on **8443** and proxies to the app, which stays
 on 8101:
 
 ```
-https://192.168.53.2:8443      <- use this; microphone works
-http://192.168.53.2:8101       <- still there; microphone hidden
+https://<lan-ip>:8443      <- use this; microphone works
+http://<lan-ip>:8101       <- still there; microphone hidden
 ```
 
 ```bash
@@ -57,8 +57,14 @@ systemctl --user status clearmind-https     # the sidecar
 sudo ufw allow 8443/tcp                     # before testing from a phone
 ```
 
-The certificate is self-signed (`deploy/tls/`, SANs: `localhost`,
-`127.0.0.1`, `192.168.53.2`, valid to Jan 2029; the key is gitignored).
+The certificate is self-signed and **not committed** — neither half of it is,
+since a cert pins the addresses of one particular machine. Generate your own:
+
+```bash
+# add your LAN address as IP.2 in deploy/tls/san.cnf first
+openssl req -x509 -newkey rsa:2048 -nodes -days 800 \
+  -keyout deploy/tls/key.pem -out deploy/tls/cert.pem -config deploy/tls/san.cnf
+```
 Browsers will warn once — **Advanced → Proceed** — after which the origin is a
 real secure context and the mic works. To silence the warning, trust
 `deploy/tls/cert.pem` on the device: on macOS, drag it into Keychain Access
@@ -66,7 +72,7 @@ real secure context and the mic works. To silence the warning, trust
 the profile, then enable it under Settings → General → About → Certificate
 Trust Settings.
 
-Regenerate the cert with `deploy/tls/san.cnf` if the LAN address changes.
+Regenerate it the same way if the LAN address changes.
 
 ## Voice: dictation only## Voice: dictation only
 

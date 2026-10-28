@@ -39,31 +39,30 @@ NOTE = """> **Note on this record.** This is the build conversation for this
 > patients". Real reviews would need written patient authorisation.
 """
 
-# (pattern, replacement). Order matters: the SSH key rule runs before anything
-# that might rewrite the host comment on the end of the key.
-SUBSTITUTIONS = [
-    # Personal identifiers.
-    (r"\bvijeta\.gera@gmail\.com\b", "[email]"),
-    (r"\bssh-(?:ed25519|rsa|dss|ecdsa[A-Za-z0-9-]*)\s+[A-Za-z0-9+/=]{20,}(?:\s+\S+)?",
-     "[ssh public key]"),
-    (r"\bvijeta@PSSVServer-[A-Za-z0-9]+\b", "[host]"),
-    (r"/Users/vijeta", "/Users/[user]"),
-    (r"\b(?:10|172|192)\.\d{1,3}\.\d{1,3}\.\d{1,3}\b", "[local-ip]"),
-    # Unrelated work on the same machine.
-    (r"(?i)\bstoryboard\.service\b", "another prototype's unit"),
-    (r"(?i)\bstoryboard\b", "another prototype"),
-    (r"8090, 8091, 8094–8099", "other local ports"),
-]
+# The patterns live in .identity, which is gitignored: a tool whose job is to
+# strip the hostname, the usernames and the local addresses should not itself
+# publish them. Format is one rule per line, "pattern => replacement", with #
+# for comments. Regex syntax.
+IDENTITY = os.path.join(HERE, ".identity")
 
-# Checked against the output. Any hit means the file is not written.
-BANNED = {
-    "email address": r"vijeta\.gera@gmail\.com",
-    "ssh public key": r"ssh-(?:ed25519|rsa|dss|ecdsa)\s+AAAA",
-    "machine hostname": r"PSSVServer",
-    "mac username": r"/Users/vijeta\b",
-    "local IP address": r"\b(?:10|172|192)\.\d{1,3}\.\d{1,3}\.\d{1,3}\b",
-    "unrelated project": r"(?i)\bstoryboard\b",
-}
+
+def rules():
+    if not os.path.exists(IDENTITY):
+        sys.exit(f"{IDENTITY} not found — refusing to write {OUT} without it, "
+                 "since that would publish the record unredacted")
+    out = []
+    with open(IDENTITY, encoding="utf-8") as fh:
+        for n, line in enumerate(fh, 1):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=>" not in line:
+                sys.exit(f"{IDENTITY}:{n}: expected 'pattern => replacement'")
+            pat, _, rep = line.partition("=>")
+            out.append((pat.strip(), rep.strip()))
+    if not out:
+        sys.exit(f"{IDENTITY} has no rules — refusing to write {OUT}")
+    return out
 
 
 def main():
@@ -71,18 +70,21 @@ def main():
     if not os.path.exists(SRC):
         sys.exit(f"{SRC} not found — run tools-make-transcript.py first")
 
+    substitutions = rules()
     text = open(SRC, encoding="utf-8").read()
     body = text
-    for pattern, replacement in SUBSTITUTIONS:
+    for pattern, replacement in substitutions:
         body = re.sub(pattern, replacement, body)
 
     # Front matter, immediately after the title line.
     title, _, rest = body.partition("\n")
     body = f"{title}\n\n{NOTE}\n{rest}"
 
+    # Every rule is also its own check: if a pattern still matches after the
+    # pass, something is wrong and the file must not be written.
     still_there = {
-        name: len(re.findall(pattern, body))
-        for name, pattern in BANNED.items()
+        pattern: len(re.findall(pattern, body))
+        for pattern, _ in substitutions
         if re.search(pattern, body)
     }
     if still_there:
@@ -90,7 +92,7 @@ def main():
 
     open(OUT, "w", encoding="utf-8").write(body.rstrip() + "\n")
     print(f"wrote {OUT} — {len(body.splitlines())} lines "
-          f"(source {len(text.splitlines())}), all {len(BANNED)} checks clean")
+          f"(source {len(text.splitlines())}), all {len(substitutions)} rules clean")
 
 
 if __name__ == "__main__":

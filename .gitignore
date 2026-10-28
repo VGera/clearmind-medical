@@ -27,3 +27,9 @@ CONVERSATION.md
 
 # local redaction list for the transcript generator (never committed)
 .redact
+
+# identity patterns for the transcript generator (never committed)
+.identity
+
+# self-signed TLS cert — regenerate locally, see README
+deploy/tls/cert.pem

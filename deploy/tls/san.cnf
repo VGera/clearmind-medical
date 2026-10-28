@@ -17,4 +17,6 @@ extendedKeyUsage = serverAuth
 [alt]
 DNS.1 = localhost
 IP.1  = 127.0.0.1
-IP.2  = 192.168.53.2
+# Add the machine's own LAN address here before generating, so the cert
+# is valid for the URL a phone on the same network actually opens.
+# IP.2  = 10.0.0.0

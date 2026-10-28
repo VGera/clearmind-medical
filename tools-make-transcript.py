@@ -11,8 +11,13 @@ preserved across regenerations — put your review notes there.
 
 import json, os, re, select, sys, datetime
 
-DEFAULT_SRC = "/home/vijeta/.claude/projects/-home-vijeta/49c5e644-e34e-4250-9437-18d345634a2b.jsonl"
-OUT = "/home/vijeta/clearmind-medical/CONVERSATION.md"
+# Derived rather than hardcoded, so this file carries no absolute paths and
+# works for whoever checks the repo out.
+SESSION_ID = "49c5e644-e34e-4250-9437-18d345634a2b"
+HOME = os.path.expanduser("~")
+PROJECT_SLUG = "-" + HOME.lstrip("/").replace("/", "-")
+DEFAULT_SRC = os.path.join(HOME, ".claude", "projects", PROJECT_SLUG, f"{SESSION_ID}.jsonl")
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "CONVERSATION.md")
 KEEP = "<!-- ===== Your notes below this line are preserved when this file is rebuilt ===== -->"
 
 

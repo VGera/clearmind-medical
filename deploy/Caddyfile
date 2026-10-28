@@ -9,7 +9,9 @@
 }
 
 :8443 {
-	tls /home/vijeta/clearmind-medical/deploy/tls/cert.pem /home/vijeta/clearmind-medical/deploy/tls/key.pem
+	# Relative to the repo root, so this file carries no absolute paths.
+	# The systemd unit sets WorkingDirectory to the repo.
+	tls deploy/tls/cert.pem deploy/tls/key.pem
 	encode gzip
 	reverse_proxy 127.0.0.1:8101 {
 		header_up X-Forwarded-Proto https
