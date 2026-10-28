@@ -160,7 +160,7 @@ Build is clean and serving. Now fixing a few issues I spotted on review.
 
 **Claude** — Oct 23, 12:15
 
-**Clear MindPath** is built and running at **http://[local-ip]:8101** (`sudo ufw allow 8101/tcp` before you test from your phone). Code at `/home/vijeta/clear-mindpath`.
+**Clear MindPath** is built and running at **http://[local-ip]:8101** (`sudo ufw allow 8101/tcp` before you test from your phone). Code at `/home/[user]/clear-mindpath`.
 
 ## Your 8 phases → 6 screens
 
@@ -232,7 +232,7 @@ What changed:
 - Calendar export — `clearmind-medical-visit.ics`, event summary and PRODID
 - `package.json` name, README
 
-I also renamed the directory to **`/home/vijeta/clearmind-medical`** so it matches the product — say the word if you'd rather keep the old path. Port stays 8101, and typecheck plus production build are clean.
+I also renamed the directory to **`/home/[user]/clearmind-medical`** so it matches the product — say the word if you'd rather keep the old path. Port stays 8101, and typecheck plus production build are clean.
 
 One thing I noticed while stopping the old server: you have a startup script that relaunches your prototypes (other local ports), and ClearMind Medical isn't in it — so it won't come back after a reboot unless you add `start_next clearmind-medical 8101`. Want me to add it?
 
@@ -287,7 +287,7 @@ Added — and a correction to what I told you: there is no startup script file o
 So I created `~/.config/systemd/user/clearmind-medical.service`, mirroring the another prototype unit:
 
 ```ini
-WorkingDirectory=/home/vijeta/clearmind-medical
+WorkingDirectory=/home/[user]/clearmind-medical
 ExecStart=…/node node_modules/next/dist/bin/next start -p 8101 -H 0.0.0.0
 Restart=on-failure
 WantedBy=default.target
@@ -1308,7 +1308,7 @@ Only one of the two agent reports is in the main log. The other is in its own su
 
 **Claude** — Oct 25, 12:39
 
-**`/home/vijeta/clearmind-medical/CONVERSATION.md`** — 1,913 lines, plain Markdown, yours to edit.
+**`/home/[user]/clearmind-medical/CONVERSATION.md`** — 1,913 lines, plain Markdown, yours to edit.
 
 Rather than reconstruct it from memory, I found Claude Code's own session log on disk (`~/.claude/projects/-home-vijeta/49c5e644-….jsonl`) and converted it, so it's a real record, not a recollection.
 
@@ -3443,7 +3443,7 @@ Now the provider-selection screen itself, replacing the "message us about it" de
 >
 > 3. **Files and Code Sections:**
 >
-> **`/home/vijeta/clearmind-medical/src/lib/data.ts`** — single source of truth for practice config, questions, options, providers, care plan, testimonials.
+> **`/home/[user]/clearmind-medical/src/lib/data.ts`** — single source of truth for practice config, questions, options, providers, care plan, testimonials.
 > - `PRACTICE` = `{ name, phone: "(512) 555-0100", phoneHref, states: ["TX"], minAge: 18, selfPay: { intake: 249, followUp: 129 } }`
 > - `CONDITIONS` each with `{ tint, id, label, prose, aka }` — `label` is the short chip, `prose` for sentences
 > - `PROVIDERS` each with `{ id, name, credential, role, years, focus, accepts, languages, bio, approach, rating, reviews, slotHours, tint }`
@@ -3661,7 +3661,7 @@ Now the provider-selection screen itself, replacing the "message us about it" de
 >
 > </summary>
 >
-> If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /home/vijeta/.claude/projects/-home-vijeta/49c5e644-e34e-4250-9437-18d345634a2b.jsonl
+> If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /home/[user]/.claude/projects/-home-vijeta/49c5e644-e34e-4250-9437-18d345634a2b.jsonl
 > Continue the conversation from where it left off without asking the user any further questions. Resume directly — do not acknowledge the summary, do not recap what was happening, do not preface with "I'll continue" or similar. Pick up the last task as if the break never happened.
 
 **Claude** — Oct 27, 09:44
@@ -5251,8 +5251,8 @@ Now populating `.redact` from the session log without ever printing the value:
 <summary>Actions taken (5)</summary>
 
 - Bash: Ignore the transcript and the redaction list
-- Read: /home/vijeta/clearmind-medical/tools-make-transcript.py
-- Edit: /home/vijeta/clearmind-medical/tools-make-transcript.py
+- Read: /home/[user]/clearmind-medical/tools-make-transcript.py
+- Edit: /home/[user]/clearmind-medical/tools-make-transcript.py
 - Bash: Check imports and the clean_user return
 
 </details>
@@ -5293,7 +5293,7 @@ Zero occurrences, and the hook can't reintroduce it. Committing the prep:
 <summary>Actions taken (3)</summary>
 
 - Bash: Find where the transcript is written
-- Edit: /home/vijeta/clearmind-medical/tools-make-transcript.py
+- Edit: /home/[user]/clearmind-medical/tools-make-transcript.py
 - Bash: Regenerate and verify zero occurrences remain
 
 </details>
@@ -6035,8 +6035,8 @@ Two smaller notes:
 ## What I built
 
 **New files**
-- `/home/vijeta/clearmind-medical/src/components/portal/Reschedule.tsx` — pick → confirm → confirmed. Shows the booked appointment ("BOOKED NOW" card with provider avatar), then the same provider's open times as pills whose markup is byte-identical to `Match.tsx`'s `ProviderCard` (`min-h-[3rem]`, `whitespace-nowrap`, `aria-pressed`, `aria-label` = `"<full slot label> with Dr. Amara Okafor"`). "Keep my current time" is on every screen (pick + confirm), plus "Pick a different time" on the confirm step. A different provider routes to messaging ("Ask about a different provider"), no invented switch flow. Commits the *snapped* slot as a fractional `hours` offset so the visit list renders exactly the time on the pill tapped.
-- `/home/vijeta/clearmind-medical/src/components/portal/VideoVisit.tsx` — real `getUserMedia`. Pre-join: live mirrored self-preview (`muted playsInline autoPlay`), real camera/mic `<select>`s from `enumerateDevices()` (re-acquires on change), `AudioContext` + `AnalyserNode` RMS level meter (`role="meter"`, sticky "We can hear you"), camera/mic toggles flipping `track.enabled`, "Join now", "Join by phone instead". In-call: declared-simulation provider tile (initials avatar + "Connected", with "Simulated for this prototype — there is no provider on the other end"), real local tile, mute/camera/leave, elapsed timer. Exports `mediaBlocked()`, `classifyMediaError()` and `MediaTrouble` so JoinBlock reuses one set of failure wordings: `insecure` (names `https://[local-ip]:8443`, phrased consistently with `MicNote` in `VoiceBits.tsx`), `unsupported`, `denied`, `missing`, `busy`, `other` — every one offers "Join by phone instead" + `PRACTICE.phone`, and a "Try again" where retrying can help. Teardown (all tracks stopped + `AudioContext.close()`) runs on unmount, on leave, and on tab change mid-call.
+- `/home/[user]/clearmind-medical/src/components/portal/Reschedule.tsx` — pick → confirm → confirmed. Shows the booked appointment ("BOOKED NOW" card with provider avatar), then the same provider's open times as pills whose markup is byte-identical to `Match.tsx`'s `ProviderCard` (`min-h-[3rem]`, `whitespace-nowrap`, `aria-pressed`, `aria-label` = `"<full slot label> with Dr. Amara Okafor"`). "Keep my current time" is on every screen (pick + confirm), plus "Pick a different time" on the confirm step. A different provider routes to messaging ("Ask about a different provider"), no invented switch flow. Commits the *snapped* slot as a fractional `hours` offset so the visit list renders exactly the time on the pill tapped.
+- `/home/[user]/clearmind-medical/src/components/portal/VideoVisit.tsx` — real `getUserMedia`. Pre-join: live mirrored self-preview (`muted playsInline autoPlay`), real camera/mic `<select>`s from `enumerateDevices()` (re-acquires on change), `AudioContext` + `AnalyserNode` RMS level meter (`role="meter"`, sticky "We can hear you"), camera/mic toggles flipping `track.enabled`, "Join now", "Join by phone instead". In-call: declared-simulation provider tile (initials avatar + "Connected", with "Simulated for this prototype — there is no provider on the other end"), real local tile, mute/camera/leave, elapsed timer. Exports `mediaBlocked()`, `classifyMediaError()` and `MediaTrouble` so JoinBlock reuses one set of failure wordings: `insecure` (names `https://[local-ip]:8443`, phrased consistently with `MicNote` in `VoiceBits.tsx`), `unsupported`, `denied`, `missing`, `busy`, `other` — every one offers "Join by phone instead" + `PRACTICE.phone`, and a "Try again" where retrying can help. Teardown (all tracks stopped + `AudioContext.close()`) runs on unmount, on leave, and on tab change mid-call.
 
 **Edited**
 - `src/components/portal/Visits.tsx` — `JoinBlock`'s fake `setTimeout` replaced with real `getUserMedia`; it reports the actual device labels the browser handed over, keeps a live preview until "Done — switch my camera off" (and releases on unmount), and shows `MediaTrouble` on failure. New `onReschedule` / `onJoin` props; "Reschedule" and cancel-flow "Move it instead" both open Reschedule.
@@ -6076,7 +6076,7 @@ Also re-ran the pre-existing `portal.js` suite: everything still passes except i
 
 # ClearMind Medical — intake flow E2E verification (localhost:8101, running build)
 
-Tested against the live service via CDP (headless Chrome on port 9401), 390x844 and 1280x900. Repo was **read-only** — no files created/edited/deleted under `/home/vijeta/clearmind-medical` (verified with `find -newermt`); service never restarted or rebuilt; the user's own Chrome (`/tmp/codex-espn-chrome-*`) untouched. Scripts live in `/tmp/agent-intake/`.
+Tested against the live service via CDP (headless Chrome on port 9401), 390x844 and 1280x900. Repo was **read-only** — no files created/edited/deleted under `/home/[user]/clearmind-medical` (verified with `find -newermt`); service never restarted or rebuilt; the user's own Chrome (`/tmp/codex-espn-chrome-*`) untouched. Scripts live in `/tmp/agent-intake/`.
 
 **Zero console errors and zero uncaught exceptions** across every screen and every branch below (harness `logs` was `[]` in all 14 runs).
 
@@ -6587,6 +6587,7 @@ Dead code is cheap; the problem is that each of these is where a stated design i
 
 
 <!-- ===== Your notes below this line are preserved when this file is rebuilt ===== -->
+
 
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build this prototype and ship it to the host that serves vijeta.me.
 #
-#   bash deploy/ship-clearmind.sh
+#   REMOTE_HOST=<host> bash deploy/ship-clearmind.sh
 #
 # The base path is baked in at build time, because Next writes its asset URLs
 # during the build — it cannot be switched at runtime. The image is built here
@@ -11,8 +11,10 @@
 #   cd ~/portfolio && bash deploy/redeploy.sh --no-build
 set -euo pipefail
 
-REMOTE_HOST="${REMOTE_HOST:-192.168.53.173}"
-REMOTE_USER="${REMOTE_USER:-vijeta}"
+# Set these for your own host; no default, so the script cannot quietly
+# target someone else's machine.
+REMOTE_HOST="${REMOTE_HOST:?set REMOTE_HOST to the host that serves the site}"
+REMOTE_USER="${REMOTE_USER:-$USER}"
 BASE_PATH="${BASE_PATH:-/ClearMind}"
 IMAGE="clearmind-medical:latest"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
