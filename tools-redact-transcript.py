@@ -121,6 +121,10 @@ def main():
         (r"/Users/vijeta", "/Users/[user]"),
         (r"\b(?:10|172|192)\.\d{1,3}\.\d{1,3}\.\d{1,3}\b", "[local-ip]"),
         (r"\bvijeta@PSSVServer-[A-Za-z0-9]+\b", "[host]"),
+        # An SSH public key is not a secret, but it identifies the machine and
+        # the account it is registered to.
+        (r"\bssh-(?:ed25519|rsa|dss|ecdsa[A-Za-z0-9-]*)\s+[A-Za-z0-9+/=]{20,}(?:\s+\S+)?",
+         "[ssh public key]"),
         # 3. Unrelated work on the same machine.
         (r"(?i)\bstoryboard\b", "another prototype"),
         (r"(?i)\bstoryboard\.service\b", "another prototype's unit"),
@@ -192,6 +196,7 @@ def main():
         "assignment events": r"\bportal\.(?:page|onboarding|provider)\b",
         "instrumentation rows": r"explicitly instrumented",
         "demo script": r"(?i)demo script|DEMO\.md|script for demo|\[SAY\]|Hard cut list",
+        "ssh key": r"ssh-(?:ed25519|rsa|dss|ecdsa)\s+AAAA",
     }
     bad = {k: len(re.findall(v, body)) for k, v in banned.items() if re.search(v, body)}
     if bad:
