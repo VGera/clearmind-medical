@@ -33,6 +33,36 @@ NOTE = """> **Note on this record.** This is the build conversation with the
 """
 
 
+def drop_section_containing(lines, needle, replacement):
+    """Remove one numbered exchange, found by a line inside it rather than by
+    its number — numbering shifts as the record grows, and a stale number
+    would quietly drop the wrong exchange. Leaves a stand-in so the gap is
+    explained rather than looking like a hole."""
+    hit = next((i for i, l in enumerate(lines) if needle in l), None)
+    if hit is None:
+        sys.exit(f"could not find {needle!r} — refusing to write a partial copy")
+    s = next((i for i in range(hit, -1, -1) if re.match(r"^## \d+\. ", lines[i])), None)
+    if s is None:
+        sys.exit(f"no section heading above {needle!r} — refusing to write a partial copy")
+    e = len(lines)
+    for i in range(s + 1, len(lines)):
+        if re.match(r"^## \d+\. ", lines[i]):
+            e = i
+            break
+    return lines[:s] + [replacement, ""] + lines[e:]
+
+
+def drop_run(text, start, end, replacement=""):
+    """Remove an exact span, asserting both ends are found exactly once."""
+    i = text.find(start)
+    if i < 0:
+        sys.exit(f"could not find start of run {start[:50]!r}")
+    j = text.find(end, i)
+    if j < 0:
+        sys.exit(f"could not find end of run {end[:50]!r}")
+    return text[:i] + replacement + text[j + len(end):]
+
+
 def drop_quoted_block(lines, start_pat, replacement):
     """Remove a pasted block entirely: from the first line matching start_pat
     through the last consecutive quoted line of that same message.
@@ -73,6 +103,16 @@ def main():
         "> *[The assignment's funnel and instrumentation tables were pasted here. "
         "Removed from this copy — the data belongs to whoever set the exercise.]*",
     )
+    # The request for a presentation script, and the script itself. The script
+    # is not part of the deliverable and is not shared, so the record should not
+    # carry a copy of it either.
+    lines = drop_section_containing(
+        lines,
+        "Now create me script for demo",
+        "*[One exchange about preparing a live walkthrough is omitted: it isn't part "
+        "of the deliverable.]*",
+    )
+
     body = "\n".join(lines)
 
     # 2. Identifiers and machine specifics.
@@ -89,6 +129,44 @@ def main():
     ]
     for pat, rep in subs:
         body = re.sub(pat, rep, body)
+
+    # Keep the funnel analysis; drop the parts that only concern the script.
+    body = drop_run(
+        body,
+        "Two things I changed in the script you should know about:",
+        "cost 6.9% + 6.7% + 7.3% to navigation alone).",
+    )
+    for a, b in [
+        ("Now the demo script's opening and close, rebuilt on the real numbers.",
+         "Now the funnel write-up, built on the real numbers."),
+        ("`DEMO.md` now opens on it, and `FUNNEL.md` carries the analysis.",
+         "`FUNNEL.md` carries the analysis."),
+        ("it's the strongest thing you can say in the demo:",
+         "it's the strongest thing the data supports:"),
+        ("which also breaks my demo script.",
+         "which no walkthrough of the product could have shown."),
+        ("All suites pass. Updating the demo script, since the video visit is now actually reachable.",
+         "All suites pass."),
+        ("meaning my own demo script told you to join a visit you couldn't join. ",
+         "meaning the product could not demonstrate its own core screen. "),
+        ("- Bash: Write and commit the demo script", "- Bash: Write project notes"),
+        ("- Bash: Rewrite the demo script around the real numbers",
+         "- Bash: Rewrite the funnel write-up around the real numbers"),
+        ("- Bash: Update the demo script for the reachable video visit",
+         "- Bash: Update the notes for the reachable video visit"),
+        ("`DEMO.md` is updated.", ""),
+        ("3. **There's a hard cut list** for when you're over at the 2:30 mark, in the order to cut. The off-ramp is last to go, and if it does go, there's a one-sentence replacement for the close so you don't lose the point entirely.", ""),
+        ("1. **Runtime went 4:30 \u2192 4:45.** The opening is now 45 seconds because the data is worth that. The hard cut list still gets you back under if you're long at the details screen.", ""),
+        ("Now the demo script. One honesty note I'll build in: the funnel drop-off figures are your *assumptions*, so the script states them as such with blanks for real numbers if you have them.",
+         "One honesty note worth building in: the funnel drop-off figures are your *assumptions*, so they should be stated as such."),
+        ("does the transcript reproduce the demo script she just removed?",
+         "does the record reproduce the notes just removed?"),
+        # Specific phrasings first; the catch-alls below mop up the rest.
+        ("`DEMO.md`", "the walkthrough notes"),
+        ("DEMO.md", "the walkthrough notes"),
+        ("demo script", "walkthrough notes"),
+    ]:
+        body = body.replace(a, b)
 
     # 4. Residual figures from the funnel, quoted outside the pasted block.
     for fig in ["5,898", "5898", "1,403", "4,495", "3,013", "1,912", "1,104",
@@ -113,6 +191,7 @@ def main():
         "other project": r"(?i)\bstoryboard\b",
         "assignment events": r"\bportal\.(?:page|onboarding|provider)\b",
         "instrumentation rows": r"explicitly instrumented",
+        "demo script": r"(?i)demo script|DEMO\.md|script for demo|\[SAY\]|Hard cut list",
     }
     bad = {k: len(re.findall(v, body)) for k, v in banned.items() if re.search(v, body)}
     if bad:
