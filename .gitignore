@@ -27,9 +27,3 @@ CONVERSATION.md
 
 # local redaction list for the transcript generator (never committed)
 .redact
-
-# demo script — local only, not for sharing
-DEMO.md
-
-# build record, local only
-TRANSCRIPT.md
