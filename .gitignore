@@ -33,3 +33,6 @@ CONVERSATION.md
 
 # self-signed TLS cert — regenerate locally, see README
 deploy/tls/cert.pem
+
+# walkthrough script — superseded by your own
+DEMO.md
