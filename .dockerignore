@@ -1,0 +1,11 @@
+.git
+node_modules
+.next
+out
+CONVERSATION.md
+TRANSCRIPT.md
+DEMO.md
+FUNNEL.md
+.identity
+.redact
+deploy/tls

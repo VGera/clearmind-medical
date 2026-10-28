@@ -4,6 +4,7 @@ import React from "react";
 import { PRACTICE } from "@/lib/data";
 import type { Mode, Step } from "@/lib/types";
 import { Icon } from "./ui";
+import { href } from "@/lib/paths";
 
 export const FLOW: { key: Step; label: string; short: string }[] = [
   { key: "fit", label: "Fit check", short: "Fit" },
@@ -182,7 +183,7 @@ export function Shell({
               <ModeSwitch mode={mode} onChange={onMode} />
             ) : (
               <a
-                href="/portal"
+                href={href("/portal")}
                 className="inline-flex min-h-[2.75rem] items-center rounded-full border border-line bg-panel px-4 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
               >
                 Sign in

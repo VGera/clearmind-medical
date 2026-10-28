@@ -1,6 +1,18 @@
+/**
+ * `NEXT_BASE_PATH` lets the same build serve from a sub-path of another site
+ * (vijeta.me/ClearMind) as well as from its own root. Next prefixes its own
+ * routing and asset URLs automatically; plain <a href="/..."> is not touched,
+ * so those read the value back through NEXT_PUBLIC_BASE_PATH.
+ */
+const basePath = process.env.NEXT_BASE_PATH || "";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  /* A self-contained server bundle, so the container needs no node_modules. */
+  output: "standalone",
+  ...(basePath ? { basePath } : {}),
+  env: { NEXT_PUBLIC_BASE_PATH: basePath },
   async headers() {
     return [
       {

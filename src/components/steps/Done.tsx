@@ -8,6 +8,7 @@ import { CarePlan } from "../CarePlan";
 import { Button, Card, Icon } from "../ui";
 import { AppointmentSummary } from "./Payment";
 import { fullSlotLabel } from "./Match";
+import { href } from "@/lib/paths";
 
 function icsFor(intake: Intake, start: Date): string {
   const p = PROVIDERS.find((x) => x.id === intake.providerId);
@@ -97,7 +98,7 @@ export function Done({
           Add to calendar
         </Button>
         <a
-          href="/portal"
+          href={href("/portal")}
           className="inline-flex min-h-[2.75rem] w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-panel px-5 text-[0.9375rem] font-medium text-slate-600 transition hover:bg-slate-50 sm:w-auto"
         >
           <Icon name="video" className="h-4 w-4" />
