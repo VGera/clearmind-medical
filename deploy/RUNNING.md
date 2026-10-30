@@ -67,6 +67,23 @@ Three things that will bite:
 - Caddy does not reload a changed Caddyfile on a config-only deploy. Restart
   the proxy container after editing routes.
 
+## Who has opened it
+
+When the app is served under a sub-path of a site that already runs the
+visitor-stats sidecar, a second instance of that sidecar covers this app alone:
+same script, with `ONLY_PREFIX` set to the sub-path so it counts only this
+app's own traffic, writing to its own report directory.
+
+The dashboard sits one level under the app's own path and is matched on the
+longer path, declared ahead of the app's route, so the app never receives those
+requests. It uses a **different credential from the app's shared password** —
+the owner's existing stats login — so handing the prototype to someone does not
+hand them the list of who else has seen it.
+
+Visits are sessions, not hits: assets, bot traffic and the owner's own IPs are
+filtered out, and a 30-minute idle gap starts a new session. The report
+regenerates about once a minute.
+
 ## Test fixtures
 
 Identity, insurance discovery and eligibility are mocked in `src/lib/verified/`
